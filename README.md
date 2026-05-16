@@ -29,8 +29,8 @@ Pre-requisites for `ai-brain` are a `bash` environment (as supported by Linux,
 Mac-OS and Windows/WSL), [Claude Code](https://docs.claude.com/en/docs/claude-code)
 installed and authenticated, and two helper tools:
 
-* `ec` — the color-echo helper from the
-  [Bluccino toolchain](https://github.com/bluccino) (used for all coloured output)
+* `ec` — the color-echo helper from the Bluccino toolchain, hosted at
+  [bluccino/tool-ec](https://github.com/bluccino/tool-ec) (used for all coloured output)
 * `jq` — JSON command-line processor (used by `--setup`/`--cleanup` to surgically
   merge the hook into `~/.claude/settings.json` without disturbing other keys)
 
@@ -112,7 +112,7 @@ blocks.
 ```
 ai-brain --setup      # install hook into ~/.claude/settings.json (global)
 ai-brain --cleanup    # remove the hook from ~/.claude/settings.json
-ai-brain --hook       # print masterspace context along cwd path
+ai-brain --context    # print masterspace context along cwd path
 ai-brain --tutorial   # step-by-step setup walkthrough
 ai-brain --help       # comprehensive help
 ai-brain --version    # print version
@@ -121,7 +121,7 @@ ai-brain -!           # install ai-brain into a PATH directory
 ai-brain -?           # brief usage
 ```
 
-`ai-brain --setup` wires `ai-brain --hook` into Claude Code's
+`ai-brain --setup` wires `ai-brain --context` into Claude Code's
 `UserPromptSubmit` hook by **merging** it into your global
 `~/.claude/settings.json` via `jq`. Other top-level keys in that file
 (e.g. `"theme"`, other hook types) are preserved; the operation is
@@ -129,7 +129,7 @@ idempotent — running `--setup` twice does not register the hook twice.
 `--cleanup` performs the inverse and likewise leaves unrelated settings
 intact.
 
-Because the hook is registered globally, `ai-brain --hook` runs for **every**
+Because the hook is registered globally, `ai-brain --context` runs for **every**
 Claude Code invocation; the walk-up logic ensures it exits silently with no
 output when the current working directory has no `§`-prefixed ancestor with
 an `@/` masterspace.

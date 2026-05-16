@@ -5,7 +5,8 @@
       ec -g '   ai-brain: helper and maintenance utility for AI-Brains'
       echo '   usage: ai-brain --setup       # install hook into AI-Brain'
       echo '          ai-brain --cleanup     # remove hook'
-      echo '          ai-brain --hook        # print masterspace context along cwd path'
+      echo '          ai-brain --demo        # create example AI-Brain at ~/§Privat'
+      echo '          ai-brain --context     # print masterspace context along cwd path'
       echo '          ai-brain --tutorial    # step-by-step setup walkthrough'
       echo '          ai-brain --help        # comprehensive help'
       echo '          ai-brain --version     # print version'
@@ -32,19 +33,27 @@
       ec -y '     ai-brain --setup'
       echo '         Finds the AI-Brain root (the nearest § directory above'
       echo '         cwd) and places a .claude/settings.json there with a'
-      echo '         UserPromptSubmit hook that invokes ai-brain --hook. An'
+      echo '         UserPromptSubmit hook that invokes ai-brain --context. An'
       echo '         existing settings.json is overwritten.'
       echo ''
       ec -y '     ai-brain --cleanup'
       echo '         Removes the settings.json created by --setup. Masterspaces'
       echo '         and directory structure remain untouched.'
       echo ''
-      ec -y '     ai-brain --hook'
+      ec -y '     ai-brain --demo'
+      echo '         Creates the example AI-Brain at ~/§Privat — directory tree'
+      echo '         plus seven pre-populated masterspace .md files covering'
+      echo '         recipes (with dishes/drinks sub-branches) and electronics'
+      echo '         development (power + RF sub-branches). Refuses to run if'
+      echo '         ~/§Privat already exists.'
+      echo ''
+      ec -y '     ai-brain --context'
       echo '         Walks up from the current directory to the filesystem'
       echo '         root, collecting every @-subfolder along the way and'
       echo '         printing its .md contents as <skill src="…"> blocks on'
-      echo '         stdout. This is the actual hook command that Claude Code'
-      echo '         triggers.'
+      echo '         stdout. Independent of Claude Code — the UserPromptSubmit'
+      echo '         hook installed by --setup invokes this command on every'
+      echo '         query.'
       echo ''
       ec -y '     ai-brain --tutorial'
       echo '         Prints a step-by-step setup walkthrough with copy-paste'
@@ -72,7 +81,7 @@
 #===============================================================================
 
    if [ "$*" == "--version" ] || [ "$*" == "--v" ]; then
-      echo "1.1.1"; exit 0
+      echo "1.3.1"; exit 0
    fi
 
 #===============================================================================
@@ -83,7 +92,7 @@
       if ! command -v ec >/dev/null 2>&1; then
          echo "checking ai-brain dependencies ..."
          echo "  FAIL: ec (color-echo helper, Bluccino toolchain) not found"
-         echo "        => install via Bluccino tool-stup (https://github.com/bluccino/tool-stup)"
+         echo "        => install from https://github.com/bluccino/tool-ec"
          echo "  (skipping further checks — ec is needed for coloured output)"
          exit 1
       fi
@@ -215,18 +224,18 @@ BLOCK
       echo ''
       ec -c 'Step 7: Verify'
       echo ''
-      ec -c 'Direct hook probe (shows what Claude would receive):'
+      ec -c 'Direct context probe (shows what Claude would receive):'
       echo ''
       cat <<'BLOCK'
 cd ~/§Privat/Lieblingsrezepte/Lieblingsspeisen
-ai-brain --hook
+ai-brain --context
 BLOCK
       echo ''
       ec -c 'Side-branch comparison (Elektronik instead of Rezepte):'
       echo ''
       cat <<'BLOCK'
 cd ~/§Privat/Elektronikentwicklung/Leistungselektronik
-ai-brain --hook
+ai-brain --context
 BLOCK
       echo ''
       echo 'Different masterspaces should be activated.'
@@ -291,7 +300,7 @@ BLOCK
          ec -r "   install ai-brain into a PATH directory first (e.g. ai-brain -!)"
          exit 1
       fi
-      HOOK_CMD="ai-brain --hook"
+      HOOK_CMD="ai-brain --context"
       SETTINGS="$HOME/.claude/settings.json"
 
       ec -c "hook command:  $HOOK_CMD"
@@ -331,7 +340,7 @@ BLOCK
 #===============================================================================
 
    if [ "$*" == "--cleanup" ]; then
-      HOOK_CMD="ai-brain --hook"
+      HOOK_CMD="ai-brain --context"
       SETTINGS="$HOME/.claude/settings.json"
 
       ec -c "hook command:  $HOOK_CMD"
@@ -348,7 +357,7 @@ BLOCK
          exit 1
       fi
 
-      ec -y "=> removing UserPromptSubmit entries that invoke ai-brain --hook"
+      ec -y "=> removing UserPromptSubmit entries that invoke ai-brain --context"
       NEW=$(printf '%s' "$INPUT" | jq --arg cmd "$HOOK_CMD" '
         if .hooks.UserPromptSubmit then
           .hooks.UserPromptSubmit |= map(
@@ -370,10 +379,138 @@ BLOCK
    fi
 
 #===============================================================================
-# hook entry: ai-brain --hook  (collects context along cwd→/)
+# demo: ai-brain --demo  (creates example AI-Brain at ~/§Privat)
 #===============================================================================
 
-   if [ "$*" == "--hook" ]; then
+   if [ "$*" == "--demo" ]; then
+      if [ -d ~/§Privat ]; then
+         ec -r "~/§Privat already exists — refusing to overwrite"
+         ec -r "   delete it manually (rm -rf ~/§Privat) if you really want to re-create the demo"
+         exit 1
+      fi
+
+      ec -y "=> creating directory tree under ~/§Privat"
+      mkdir -p \
+         ~/§Privat/@ \
+         ~/§Privat/Lieblingsrezepte/@ \
+         ~/§Privat/Lieblingsrezepte/Lieblingsspeisen/@ \
+         ~/§Privat/Lieblingsrezepte/Lieblingsgetränke/@ \
+         ~/§Privat/Elektronikentwicklung/@ \
+         ~/§Privat/Elektronikentwicklung/Leistungselektronik/@ \
+         ~/§Privat/Elektronikentwicklung/HF-Elektronik/@ || exit 1
+
+      ec -y "=> writing root masterspace"
+      cat > ~/§Privat/@/persoenliche-allgemein.md <<'EOF'
+# Persönliche allgemeine Präferenzen
+
+- Sprache: Deutsch
+- Anrede: Du
+- Stil: knapp, sachlich, direkt
+- Bei Code-Beispielen: kommentiere sparsam, nur wo es nicht-offensichtlich ist
+EOF
+
+      ec -y "=> writing Lieblingsrezepte masterspaces"
+      cat > ~/§Privat/Lieblingsrezepte/@/rezept-vorlieben.md <<'EOF'
+# Rezept-Vorlieben
+
+- Wenig Zucker, wenn möglich
+- Bevorzugt mediterrane und alpenländische Küche
+- Keine Erdnüsse (Allergie im Haushalt)
+- Mengenangaben in Gramm und Esslöffeln, nicht in Cups
+EOF
+
+      cat > ~/§Privat/Lieblingsrezepte/Lieblingsspeisen/@/speisen-praeferenzen.md <<'EOF'
+# Speisen-Präferenzen
+
+- Bevorzugte Garmethoden: Schmoren, Niedertemperatur, Backofen
+- Lieblings-Aromen: Rosmarin, Thymian, Knoblauch, Zitrone
+- Vegetarisch ist willkommen, muss aber nicht sein
+EOF
+
+      cat > ~/§Privat/Lieblingsrezepte/Lieblingsgetränke/@/getraenke-vorlieben.md <<'EOF'
+# Getränke-Präferenzen
+
+- Bevorzugte Tees: Earl Grey, Sencha, Pfefferminze
+- Lieblings-Cocktails: Old Fashioned, Negroni, Aperol Spritz
+- Alkoholfrei: hausgemachte Sirupe (Holunder, Ingwer-Zitrone, Hibiskus)
+- Kaffee: Espresso aus mittlerer Röstung, italienisch
+- Wein: trockene Weiße aus Österreich (Grüner Veltliner), spritzige Rosés
+EOF
+
+      ec -y "=> writing Elektronikentwicklung masterspaces"
+      cat > ~/§Privat/Elektronikentwicklung/@/bauteil-bestand.md <<'EOF'
+# Bauteil-Bestand und Hersteller-Präferenzen
+
+## Im Lager
+
+- Mikrocontroller: STM32 (G0/F4-Serie), ESP32, RP2040
+- Op-Amps: TL072, OPA2134, MCP6004
+- Spannungsregler: LM317, LDOs MCP1700, AMS1117
+- Passive: E12-Widerstandsserie 0805, MLCCs X7R bis 10 µF
+
+## Bevorzugte Hersteller
+
+- ICs: Texas Instruments, ST Microelectronics, Microchip
+- Passive: Vishay, Murata, Kemet
+- Steckverbinder: Phoenix Contact (Schraubklemmen), Molex (Pinheader)
+
+## Distributoren
+
+- Erstwahl Mouser, alternativ Digi-Key
+- Lokal: RS Components Österreich
+EOF
+
+      cat > ~/§Privat/Elektronikentwicklung/Leistungselektronik/@/leistungsdesign-notizen.md <<'EOF'
+# Leistungselektronik — Designnotizen
+
+## Bewährte Topologien
+
+- Buck-Converter: TPS62xxx-Familie für 12 V → 5 V / 3.3 V bis 1 A
+- Linearer Vorregler vor empfindlicher Analogstufe (LDO mit niedrigem PSRR)
+- Synchron-Buck bei > 1 A, asynchron darunter
+- Ladungspumpen für 5 V → ±5 V symmetrisch (LM27761)
+
+## Eigene Erfahrungen
+
+- Layout: Stromschleifen so klein wie möglich, Switching-Node-Fläche minimieren
+- Eingangs-Caps: mindestens 10 µF Keramik direkt am IC, 100 µF Bulk
+- Snubber an MOSFET-Schaltern: RC-Glied dimensioniert nach Resonanz
+- EMV: Ferrit-Bead in V_in bei längerer Zuleitung
+EOF
+
+      cat > ~/§Privat/Elektronikentwicklung/HF-Elektronik/@/hf-design-notizen.md <<'EOF'
+# HF-Elektronik — Designnotizen
+
+## Bevorzugte Topologien
+
+- Antennen-Matching: Pi-Netzwerk für 50 Ω auf 2.4 GHz
+- Bandpass: LC-Filter 3. Ordnung für Schmalband-Anwendungen
+- Tiefpass am ADC-Eingang: RC + L für Anti-Aliasing
+- Balun: integrierte Bauteile (Murata LFB-Serie) statt diskreter Übertrager
+
+## EMV-Erfahrungen
+
+- Massefläche durchgehend, möglichst ohne Schnitte unter HF-Bahnen
+- Via-Stitching am Rand der GND-Fläche (Abstand λ/20)
+- Schirmung: kleine Blech-Käppchen (Würth WE-SHC) statt Vollblechen
+- ESD: TVS-Dioden möglichst nahe am Steckverbinder
+
+## Messtechnik
+
+- VNA: NanoVNA-V2 reicht für die meisten Hobby-Anpassungen bis 3 GHz
+- Spektrum: TinySA für Voruntersuchungen, RSA für ernsthafte Messungen
+EOF
+
+      ec -g "OK — demo AI-Brain created at ~/§Privat (7 masterspaces populated)"
+      ec -c "next step: ai-brain --setup   # register the hook so Claude Code uses the context"
+      exit 0
+   fi
+
+#===============================================================================
+# context dump: ai-brain --context  (collects masterspace .md files along cwd→/)
+#===============================================================================
+
+   if [ "$*" == "--context" ]; then
       D="$PWD"
       A=()
       while [ "$D" != "/" ]; do
