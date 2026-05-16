@@ -219,3 +219,4 @@ __marimo__/
 
 # virtual environment folder
 @ai
+.DS_Store
