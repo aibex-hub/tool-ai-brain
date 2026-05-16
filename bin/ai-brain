@@ -210,16 +210,16 @@ BLOCK
          touch "$DIR/_junk_" 2>/dev/null || ERR="1"
          rm -f "$DIR/_junk_" 2>/dev/null
 
-         echo "=== installing ai-brain in $DIR ..."
+         ec -g "=== installing ai-brain in $DIR ..."
          if [ "$ERR" == "0" ]; then
-            echo "  cp ~ai-brain $DIR/ai-brain"
+            ec -y "  cp ~ai-brain $DIR/ai-brain"
             cp ~ai-brain "$DIR/ai-brain" || exit 1
          else
-            echo "  this is a protected directory which uses a password!"
-            echo "  sudo cp ~ai-brain $DIR/ai-brain"
+            ec -c "  this is a protected directory which uses a password!"
+            ec -y "  sudo cp ~ai-brain $DIR/ai-brain"
             sudo cp ~ai-brain "$DIR/ai-brain" || exit 1
          fi
-         echo "=== successful installation of ai-brain"
+         ec -g "=== successful installation of ai-brain"
          echo "  => enter: ai-brain -?   # to see usage"
 
          rm -f ~ai-brain

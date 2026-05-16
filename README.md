@@ -18,7 +18,7 @@ to download and install `ai-brain`. Select a number from the list of potential
 install directories (which are extracted from your PATH).
 
 ```sh
-  HUB=https://raw.githubusercontent.com/ihux; \
+  HUB=https://raw.githubusercontent.com/aibex-hub; \
       curl -s $HUB/tool-ai-brain/ihux/bin/ai-brain >~ai-brain; bash ~ai-brain -!
 ```
 
@@ -38,7 +38,7 @@ a binary directory listed in `$PATH` will also do the job (`ai-brain` is
 located in the repository's subfolder `bin`).
 
 ```sh
-    $ git clone https://github.com/ihux/tool-ai-brain  # see tool-ai-brain/bin/ai-brain
+    $ git clone https://github.com/aibex-hub/tool-ai-brain  # see tool-ai-brain/bin/ai-brain
 ```
 
 Tool `ai-brain` provides a version self-check:
