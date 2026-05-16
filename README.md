@@ -23,6 +23,18 @@ install directories (which are extracted from your PATH).
 ```
 
 
+## Tutorial
+
+A four-part tutorial (in German), prefaced by a short teaser, explains
+the concept of an AI-Brain and walks you through the installation:
+
+0. [Teaser und Wegweiser](./docs/00-tutorial-teaser.md)
+1. [Halluzination und Adäquanz](./docs/01-halluzination-und-adaequanz.md)
+2. [AI-Brain — Idee einer KI-Architektur](./docs/02-ai-brain-idee.md)
+3. [Aufbau und Aktivierung (vereinfacht)](./docs/03-aufbau-und-aktivierung.md)
+4. [Installation Schritt für Schritt](./docs/04-installation.md)
+
+
 ## Pre-Requisites
 
 Pre-requisites for `ai-brain` are a `bash` environment (as supported by Linux,
