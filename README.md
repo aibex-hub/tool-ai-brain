@@ -86,8 +86,10 @@ current task, nothing more.
 
 The conceptual foundation behind AI-Brain is the *Adäquanz hypothesis* — both
 too little and too much context degrade the quality of AI responses. A four-part
-tutorial (in German) walks through the reasoning and the practical realization:
+tutorial (in German), prefaced by a short teaser, walks through the reasoning
+and the practical realization:
 
+0. [**Teaser und Wegweiser**](./docs/00-tutorial-teaser.md) — why bother reading the four parts (5 min)
 1. [**Halluzination und Adäquanz**](./docs/01-halluzination-und-adaequanz.md) — the underlying problem and the Adäquanz hypothesis
 2. [**AI-Brain — Idee einer KI-Architektur**](./docs/02-ai-brain-idee.md) — hierarchical knowledge tree with path-activated context
 3. [**Aufbau und Aktivierung (vereinfacht)**](./docs/03-aufbau-und-aktivierung.md) — two simple file-system conventions (`§` for roots, `@` for masterspaces)
