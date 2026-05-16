@@ -1,0 +1,345 @@
+#!/bin/bash
+# ai-brain: helper and maintenance utility for AI-Brains
+
+   if [ "$*" == "-?" ]; then
+      ec -g '   ai-brain: helper and maintenance utility for AI-Brains'
+      echo '   usage: ai-brain --setup       # install hook into AI-Brain'
+      echo '          ai-brain --cleanup     # remove hook'
+      echo '          ai-brain --hook        # print masterspace context along cwd path'
+      echo '          ai-brain --tutorial    # step-by-step setup walkthrough'
+      echo '          ai-brain --help        # comprehensive help'
+      echo '          ai-brain --version     # print version'
+      echo '          ai-brain -!            # install ai-brain into a PATH directory'
+      echo '   see also: chk, ec, pimp'
+      exit 1
+   fi
+
+#===============================================================================
+# comprehensive help: ai-brain --help
+#===============================================================================
+
+   if [ "$*" == "--help" ]; then
+      echo '   ai-brain — central CLI for an AI-Brain'
+      echo ''
+      ec -g '   Concept:'
+      echo '     An AI-Brain is a directory hierarchy whose root starts with'
+      echo '     a §-prefix, where each node may carry an @-subfolder (the'
+      echo '     masterspace). On every AI query the masterspaces along the'
+      echo '     cwd path are activated as context.'
+      echo ''
+      ec -g '   Commands:'
+      ec -y '     ai-brain --setup'
+      echo '         Finds the AI-Brain root (the nearest § directory above'
+      echo '         cwd) and places a .claude/settings.json there with a'
+      echo '         UserPromptSubmit hook that invokes ai-brain --hook. An'
+      echo '         existing settings.json is overwritten.'
+      echo ''
+      ec -y '     ai-brain --cleanup'
+      echo '         Removes the settings.json created by --setup. Masterspaces'
+      echo '         and directory structure remain untouched.'
+      echo ''
+      ec -y '     ai-brain --hook'
+      echo '         Walks up from the current directory to the filesystem'
+      echo '         root, collecting every @-subfolder along the way and'
+      echo '         printing its .md contents as <skill src="…"> blocks on'
+      echo '         stdout. This is the actual hook command that Claude Code'
+      echo '         triggers.'
+      echo ''
+      ec -y '     ai-brain --tutorial'
+      echo '         Prints a step-by-step setup walkthrough with copy-paste'
+      echo '         ready bash blocks.'
+      echo ''
+      ec -y '     ai-brain --version'
+      echo '         Prints the version number.'
+      echo ''
+      ec -g '   Conventions:'
+      echo '     §<name>/        AI-Brain root'
+      echo '     @/              masterspace (context files)'
+      echo '     .claude/        configuration folder (settings.json)'
+      echo ''
+      echo '   see also: chk, ec'
+      exit 1
+   fi
+
+#===============================================================================
+# print version: ai-brain --version
+#===============================================================================
+
+   if [ "$*" == "--version" ]; then
+      echo "1.0.0"; exit 0
+   fi
+
+#===============================================================================
+# tutorial: ai-brain --tutorial  (step-by-step setup walkthrough)
+#===============================================================================
+
+   if [ "$*" == "--tutorial" ]; then
+      ec -g 'AI-Brain — Step-by-Step Setup Tutorial'
+      echo ''
+      ec -c 'Step 1: Create the directory tree'
+      echo ''
+      cat <<'BLOCK'
+mkdir -p \
+  ~/§Privat/.claude \
+  ~/§Privat/@ \
+  ~/§Privat/Lieblingsrezepte/@ \
+  ~/§Privat/Lieblingsrezepte/Lieblingsspeisen/@ \
+  ~/§Privat/Lieblingsrezepte/Lieblingsgetränke/@ \
+  ~/§Privat/Elektronikentwicklung/@ \
+  ~/§Privat/Elektronikentwicklung/Leistungselektronik/@ \
+  ~/§Privat/Elektronikentwicklung/HF-Elektronik/@
+BLOCK
+      echo ''
+      ec -c 'Step 2: Inspect the directory tree'
+      echo ''
+      cat <<'BLOCK'
+tree -a ~/§Privat
+BLOCK
+      echo ''
+      ec -c 'Step 3: Fill the masterspaces'
+      echo ''
+      ec -c 'Root masterspace (applies to every query):'
+      echo ''
+      cat <<'BLOCK'
+cat > ~/§Privat/@/persoenliche-allgemein.md <<'EOF'
+# Persönliche allgemeine Präferenzen
+
+- Sprache: Deutsch
+- Anrede: Du
+- Stil: knapp, sachlich, direkt
+- Bei Code-Beispielen: kommentiere sparsam, nur wo es nicht-offensichtlich ist
+EOF
+BLOCK
+      echo ''
+      ec -c 'Recipes masterspace:'
+      echo ''
+      cat <<'BLOCK'
+cat > ~/§Privat/Lieblingsrezepte/@/rezept-vorlieben.md <<'EOF'
+# Rezept-Vorlieben
+
+- Wenig Zucker, wenn möglich
+- Bevorzugt mediterrane und alpenländische Küche
+- Keine Erdnüsse (Allergie im Haushalt)
+- Mengenangaben in Gramm und Esslöffeln, nicht in Cups
+EOF
+BLOCK
+      echo ''
+      ec -c 'Dishes subspace:'
+      echo ''
+      cat <<'BLOCK'
+cat > ~/§Privat/Lieblingsrezepte/Lieblingsspeisen/@/speisen-praeferenzen.md <<'EOF'
+# Speisen-Präferenzen
+
+- Bevorzugte Garmethoden: Schmoren, Niedertemperatur, Backofen
+- Lieblings-Aromen: Rosmarin, Thymian, Knoblauch, Zitrone
+- Vegetarisch ist willkommen, muss aber nicht sein
+EOF
+BLOCK
+      echo ''
+      ec -c 'Step 4: Inspect the populated tree'
+      echo ''
+      cat <<'BLOCK'
+tree -a ~/§Privat
+BLOCK
+      echo ''
+      ec -c 'Step 5: Install the hook'
+      echo ''
+      cat <<'BLOCK'
+cd ~/§Privat
+ai-brain --setup
+BLOCK
+      echo ''
+      ec -c 'Step 6: First probe query'
+      echo ''
+      cat <<'BLOCK'
+cd ~/§Privat/Lieblingsrezepte/Lieblingsspeisen
+claude
+BLOCK
+      echo ''
+      echo 'Inside Claude, try a prompt such as:'
+      echo '"Suggest an apple-strudel variation with less sugar."'
+      echo ''
+      ec -c 'Step 7: Verify'
+      echo ''
+      ec -c 'Direct hook probe (shows what Claude would receive):'
+      echo ''
+      cat <<'BLOCK'
+cd ~/§Privat/Lieblingsrezepte/Lieblingsspeisen
+ai-brain --hook
+BLOCK
+      echo ''
+      ec -c 'Side-branch comparison (Elektronik instead of Rezepte):'
+      echo ''
+      cat <<'BLOCK'
+cd ~/§Privat/Elektronikentwicklung/Leistungselektronik
+ai-brain --hook
+BLOCK
+      echo ''
+      echo 'Different masterspaces should be activated.'
+      echo ''
+      ec -c 'Step 8 (optional): Remove the hook'
+      echo ''
+      cat <<'BLOCK'
+cd ~/§Privat
+ai-brain --cleanup
+BLOCK
+      echo ''
+      exit 1
+   fi
+
+#===============================================================================
+# install: ai-brain -!   (curl-installed scratch file copies itself to PATH dir)
+#===============================================================================
+
+   if [ "$*" == "-!" ]; then
+      if [ ! -f ~ai-brain ]; then
+         echo "error: ai-brain -!  needs file ~ai-brain in current directory" >&2
+         echo "       (created by the curl install one-liner — see README)" >&2
+         exit 1
+      fi
+      chmod +x ~ai-brain
+
+      echo "select target directory for installation of ai-brain:"
+      LIST=$(echo "$PATH" | tr ':' ' ')
+      select DIR in $LIST
+      do
+         if [ "$DIR" == "" ]; then
+            exit 0
+         fi
+         ERR="0"
+         touch "$DIR/_junk_" 2>/dev/null || ERR="1"
+         rm -f "$DIR/_junk_" 2>/dev/null
+
+         echo "=== installing ai-brain in $DIR ..."
+         if [ "$ERR" == "0" ]; then
+            echo "  cp ~ai-brain $DIR/ai-brain"
+            cp ~ai-brain "$DIR/ai-brain" || exit 1
+         else
+            echo "  this is a protected directory which uses a password!"
+            echo "  sudo cp ~ai-brain $DIR/ai-brain"
+            sudo cp ~ai-brain "$DIR/ai-brain" || exit 1
+         fi
+         echo "=== successful installation of ai-brain"
+         echo "  => enter: ai-brain -?   # to see usage"
+
+         rm -f ~ai-brain
+         exit 0
+      done
+      exit 0
+   fi
+
+#===============================================================================
+# setup hook: ai-brain --setup
+#===============================================================================
+
+   if [ "$*" == "--setup" ]; then
+      ec -y "=> looking for AI-Brain root (§ directory above cwd)"
+      ROOT=""
+      D="$PWD"
+      while [ "$D" != "/" ]; do
+         if [[ "$(basename "$D")" == §* ]]; then
+            ROOT="$D"
+            break
+         fi
+         D="$(dirname "$D")"
+      done
+      if [ "$ROOT" == "" ]; then
+         ec -r "no AI-Brain root (§ directory) found in path above '$PWD'"
+         exit 1
+      fi
+      ec -c "root: $ROOT"
+
+      SCRIPT="$(command -v ai-brain)"
+      if [ "$SCRIPT" == "" ]; then
+         SCRIPT="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+      fi
+      ec -c "hook script: $SCRIPT --hook"
+
+      ec -y "=> ensuring .claude/ exists in the root"
+      mkdir -p "$ROOT/.claude" || exit 1
+
+      ec -y "=> writing $ROOT/.claude/settings.json"
+      cat > "$ROOT/.claude/settings.json" <<EOF
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$SCRIPT --hook"
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+      ec -g "OK — hook installed in $ROOT/.claude/settings.json"
+      exit 0
+   fi
+
+#===============================================================================
+# cleanup hook: ai-brain --cleanup
+#===============================================================================
+
+   if [ "$*" == "--cleanup" ]; then
+      ec -y "=> looking for AI-Brain root (§ directory above cwd)"
+      ROOT=""
+      D="$PWD"
+      while [ "$D" != "/" ]; do
+         if [[ "$(basename "$D")" == §* ]]; then
+            ROOT="$D"
+            break
+         fi
+         D="$(dirname "$D")"
+      done
+      if [ "$ROOT" == "" ]; then
+         ec -r "no AI-Brain root (§ directory) found in path above '$PWD'"
+         exit 1
+      fi
+      ec -c "root: $ROOT"
+
+      SETTINGS="$ROOT/.claude/settings.json"
+      if [ ! -f "$SETTINGS" ]; then
+         ec -m "no settings.json to remove at $SETTINGS"
+         exit 0
+      fi
+
+      ec -y "=> removing $SETTINGS"
+      rm "$SETTINGS" || exit 1
+      ec -g "OK — hook removed"
+      exit 0
+   fi
+
+#===============================================================================
+# hook entry: ai-brain --hook  (collects context along cwd→/)
+#===============================================================================
+
+   if [ "$*" == "--hook" ]; then
+      D="$PWD"
+      A=()
+      while [ "$D" != "/" ]; do
+         A=("$D" "${A[@]}")
+         D="$(dirname "$D")"
+      done
+      for D in "${A[@]}"; do
+         S="$D/@"
+         if [ -d "$S" ]; then
+            find "$S" -name "*.md" -not -path "*/@/*/*" | sort | while IFS= read -r f; do
+               echo "<skill src=\"$f\">"
+               cat "$f"
+               echo "</skill>"
+            done
+         fi
+      done
+      exit 0
+   fi
+
+#===============================================================================
+# cannot deal with anything else ...
+#===============================================================================
+
+   ai-brain -?
+   exit 1

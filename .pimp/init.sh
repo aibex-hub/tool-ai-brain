@@ -1,0 +1,3 @@
+#!/bin/bash
+# init.sh: post init of virtual environment
+echo '  post init of '@ai ...
