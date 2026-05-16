@@ -72,7 +72,7 @@
 #===============================================================================
 
    if [ "$*" == "--version" ] || [ "$*" == "--v" ]; then
-      echo "1.1.0"; exit 0
+      echo "1.1.1"; exit 0
    fi
 
 #===============================================================================
@@ -286,11 +286,12 @@ BLOCK
 #===============================================================================
 
    if [ "$*" == "--setup" ]; then
-      SCRIPT="$(command -v ai-brain)"
-      if [ "$SCRIPT" == "" ]; then
-         SCRIPT="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+      if ! command -v ai-brain >/dev/null 2>&1; then
+         ec -r "ai-brain not found on PATH"
+         ec -r "   install ai-brain into a PATH directory first (e.g. ai-brain -!)"
+         exit 1
       fi
-      HOOK_CMD="$SCRIPT --hook"
+      HOOK_CMD="ai-brain --hook"
       SETTINGS="$HOME/.claude/settings.json"
 
       ec -c "hook command:  $HOOK_CMD"
@@ -309,7 +310,9 @@ BLOCK
       NEW=$(printf '%s' "$INPUT" | jq --arg cmd "$HOOK_CMD" '
         .hooks //= {}
         | .hooks.UserPromptSubmit //= []
-        | if any(.hooks.UserPromptSubmit[]; .hooks[]?.command == $cmd)
+        | if any(.hooks.UserPromptSubmit[];
+                 (.hooks // [])[]?.command
+                 | ((. == $cmd) or endswith("/" + $cmd)))
           then .
           else .hooks.UserPromptSubmit += [{hooks: [{type: "command", command: $cmd}]}]
           end
@@ -328,11 +331,7 @@ BLOCK
 #===============================================================================
 
    if [ "$*" == "--cleanup" ]; then
-      SCRIPT="$(command -v ai-brain)"
-      if [ "$SCRIPT" == "" ]; then
-         SCRIPT="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
-      fi
-      HOOK_CMD="$SCRIPT --hook"
+      HOOK_CMD="ai-brain --hook"
       SETTINGS="$HOME/.claude/settings.json"
 
       ec -c "hook command:  $HOOK_CMD"
@@ -353,7 +352,9 @@ BLOCK
       NEW=$(printf '%s' "$INPUT" | jq --arg cmd "$HOOK_CMD" '
         if .hooks.UserPromptSubmit then
           .hooks.UserPromptSubmit |= map(
-            select((.hooks // []) | any(.command == $cmd) | not)
+            select((.hooks // [])
+                   | any(.command | ((. == $cmd) or endswith("/" + $cmd)))
+                   | not)
           )
           | if .hooks.UserPromptSubmit == [] then del(.hooks.UserPromptSubmit) else . end
           | if .hooks == {} then del(.hooks) else . end
