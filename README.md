@@ -1,4 +1,4 @@
-![](./etc/ai-brain.png)
+![Info Database](./etc/ai-brain.png)
 --------------------------------------------------------------------------------
 
 # AI-Brain — Helper and Maintenance Utility for AI-Brains
