@@ -9,6 +9,7 @@
       echo '          ai-brain --tutorial    # step-by-step setup walkthrough'
       echo '          ai-brain --help        # comprehensive help'
       echo '          ai-brain --version     # print version'
+      echo '          ai-brain --check       # verify required dependencies are installed'
       echo '          ai-brain -!            # install ai-brain into a PATH directory'
       echo '   see also: chk, ec, pimp'
       exit 1
@@ -52,6 +53,11 @@
       ec -y '     ai-brain --version'
       echo '         Prints the version number.'
       echo ''
+      ec -y '     ai-brain --check'
+      echo '         Verifies that all required dependencies (ec, jq, claude) and'
+      echo '         optional ones (tree) are available on PATH; reports OK/FAIL'
+      echo '         per item with a fix hint. Exit 0 if all required pass.'
+      echo ''
       ec -g '   Conventions:'
       echo '     §<name>/        AI-Brain root'
       echo '     @/              masterspace (context files)'
@@ -67,6 +73,55 @@
 
    if [ "$*" == "--version" ]; then
       echo "1.0.1"; exit 0
+   fi
+
+#===============================================================================
+# check dependencies: ai-brain --check
+#===============================================================================
+
+   if [ "$*" == "--check" ]; then
+      if ! command -v ec >/dev/null 2>&1; then
+         echo "checking ai-brain dependencies ..."
+         echo "  FAIL: ec (color-echo helper, Bluccino toolchain) not found"
+         echo "        => install via Bluccino tool-stup (https://github.com/bluccino/tool-stup)"
+         echo "  (skipping further checks — ec is needed for coloured output)"
+         exit 1
+      fi
+      ec -c "checking ai-brain dependencies ..."
+      ERR=0
+
+      # ec — already verified above
+      ec -g "  OK:   ec (color-echo helper, Bluccino toolchain)"
+
+      # jq — JSON manipulation, used by --setup and --cleanup
+      if command -v jq >/dev/null 2>&1; then
+         ec -g "  OK:   jq (JSON manipulator, used by --setup/--cleanup)"
+      else
+         ec -r "  FAIL: jq not found => brew install jq   or   apt install jq"
+         ERR=1
+      fi
+
+      # claude — the Claude Code CLI that consumes the hook
+      if command -v claude >/dev/null 2>&1; then
+         ec -g "  OK:   claude (Claude Code CLI)"
+      else
+         ec -r "  FAIL: claude not found => https://docs.claude.com/en/docs/claude-code"
+         ERR=1
+      fi
+
+      # tree — optional, used by the embedded tutorial for directory visualization
+      if command -v tree >/dev/null 2>&1; then
+         ec -g "  OK:   tree (optional, used by tutorial for directory visualization)"
+      else
+         ec -m "  WARN: tree not found (optional) => brew install tree   or   apt install tree"
+      fi
+
+      if [ "$ERR" != 0 ]; then
+         ec -r "=> required dependencies missing"
+         exit 1
+      fi
+      ec -g "=> all required dependencies installed"
+      exit 0
    fi
 
 #===============================================================================
@@ -145,7 +200,6 @@ BLOCK
       ec -c 'Step 5: Install the hook'
       echo ''
       cat <<'BLOCK'
-cd ~/§Privat
 ai-brain --setup
 BLOCK
       echo ''
@@ -180,7 +234,6 @@ BLOCK
       ec -c 'Step 8 (optional): Remove the hook'
       echo ''
       cat <<'BLOCK'
-cd ~/§Privat
 ai-brain --cleanup
 BLOCK
       echo ''
@@ -229,87 +282,89 @@ BLOCK
    fi
 
 #===============================================================================
-# setup hook: ai-brain --setup
+# setup hook: ai-brain --setup   (merges hook into ~/.claude/settings.json)
 #===============================================================================
 
    if [ "$*" == "--setup" ]; then
-      ec -y "=> looking for AI-Brain root (§ directory above cwd)"
-      ROOT=""
-      D="$PWD"
-      while [ "$D" != "/" ]; do
-         if [[ "$(basename "$D")" == §* ]]; then
-            ROOT="$D"
-            break
-         fi
-         D="$(dirname "$D")"
-      done
-      if [ "$ROOT" == "" ]; then
-         ec -r "no AI-Brain root (§ directory) found in path above '$PWD'"
-         exit 1
-      fi
-      ec -c "root: $ROOT"
-
       SCRIPT="$(command -v ai-brain)"
       if [ "$SCRIPT" == "" ]; then
          SCRIPT="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
       fi
-      ec -c "hook script: $SCRIPT --hook"
+      HOOK_CMD="$SCRIPT --hook"
+      SETTINGS="$HOME/.claude/settings.json"
 
-      ec -y "=> ensuring .claude/ exists in the root"
-      mkdir -p "$ROOT/.claude" || exit 1
+      ec -c "hook command:  $HOOK_CMD"
+      ec -c "settings file: $SETTINGS"
 
-      ec -y "=> writing $ROOT/.claude/settings.json"
-      cat > "$ROOT/.claude/settings.json" <<EOF
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$SCRIPT --hook"
-          }
-        ]
-      }
-    ]
-  }
-}
-EOF
-      ec -g "OK — hook installed in $ROOT/.claude/settings.json"
+      ec -y "=> ensuring $(dirname "$SETTINGS") exists"
+      mkdir -p "$(dirname "$SETTINGS")" || exit 1
+
+      INPUT=$(cat "$SETTINGS" 2>/dev/null || echo '{}')
+      if ! printf '%s' "$INPUT" | jq empty 2>/dev/null; then
+         ec -r "$SETTINGS exists but is not valid JSON. Aborting."
+         exit 1
+      fi
+
+      ec -y "=> merging UserPromptSubmit hook into settings.json"
+      NEW=$(printf '%s' "$INPUT" | jq --arg cmd "$HOOK_CMD" '
+        .hooks //= {}
+        | .hooks.UserPromptSubmit //= []
+        | if any(.hooks.UserPromptSubmit[]; .hooks[]?.command == $cmd)
+          then .
+          else .hooks.UserPromptSubmit += [{hooks: [{type: "command", command: $cmd}]}]
+          end
+      ') || exit 1
+
+      TMP=$(mktemp)
+      printf '%s\n' "$NEW" > "$TMP"
+      mv "$TMP" "$SETTINGS" || exit 1
+
+      ec -g "OK — hook installed in $SETTINGS"
       exit 0
    fi
 
 #===============================================================================
-# cleanup hook: ai-brain --cleanup
+# cleanup hook: ai-brain --cleanup   (removes hook from ~/.claude/settings.json)
 #===============================================================================
 
    if [ "$*" == "--cleanup" ]; then
-      ec -y "=> looking for AI-Brain root (§ directory above cwd)"
-      ROOT=""
-      D="$PWD"
-      while [ "$D" != "/" ]; do
-         if [[ "$(basename "$D")" == §* ]]; then
-            ROOT="$D"
-            break
-         fi
-         D="$(dirname "$D")"
-      done
-      if [ "$ROOT" == "" ]; then
-         ec -r "no AI-Brain root (§ directory) found in path above '$PWD'"
-         exit 1
+      SCRIPT="$(command -v ai-brain)"
+      if [ "$SCRIPT" == "" ]; then
+         SCRIPT="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
       fi
-      ec -c "root: $ROOT"
+      HOOK_CMD="$SCRIPT --hook"
+      SETTINGS="$HOME/.claude/settings.json"
 
-      SETTINGS="$ROOT/.claude/settings.json"
+      ec -c "hook command:  $HOOK_CMD"
+      ec -c "settings file: $SETTINGS"
+
       if [ ! -f "$SETTINGS" ]; then
-         ec -m "no settings.json to remove at $SETTINGS"
+         ec -m "no $SETTINGS to clean"
          exit 0
       fi
 
-      ec -y "=> removing $SETTINGS"
-      rm "$SETTINGS" || exit 1
-      ec -g "OK — hook removed"
+      INPUT=$(cat "$SETTINGS")
+      if ! printf '%s' "$INPUT" | jq empty 2>/dev/null; then
+         ec -r "$SETTINGS exists but is not valid JSON. Aborting."
+         exit 1
+      fi
+
+      ec -y "=> removing UserPromptSubmit entries that invoke ai-brain --hook"
+      NEW=$(printf '%s' "$INPUT" | jq --arg cmd "$HOOK_CMD" '
+        if .hooks.UserPromptSubmit then
+          .hooks.UserPromptSubmit |= map(
+            select((.hooks // []) | any(.command == $cmd) | not)
+          )
+          | if .hooks.UserPromptSubmit == [] then del(.hooks.UserPromptSubmit) else . end
+          | if .hooks == {} then del(.hooks) else . end
+        else . end
+      ') || exit 1
+
+      TMP=$(mktemp)
+      printf '%s\n' "$NEW" > "$TMP"
+      mv "$TMP" "$SETTINGS" || exit 1
+
+      ec -g "OK — hook removed from $SETTINGS"
       exit 0
    fi
 

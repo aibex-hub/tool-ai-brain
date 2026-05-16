@@ -27,8 +27,12 @@ install directories (which are extracted from your PATH).
 
 Pre-requisites for `ai-brain` are a `bash` environment (as supported by Linux,
 Mac-OS and Windows/WSL), [Claude Code](https://docs.claude.com/en/docs/claude-code)
-installed and authenticated, and the `ec` color-echo helper from the
-[Bluccino toolchain](https://github.com/bluccino).
+installed and authenticated, and two helper tools:
+
+* `ec` — the color-echo helper from the
+  [Bluccino toolchain](https://github.com/bluccino) (used for all coloured output)
+* `jq` — JSON command-line processor (used by `--setup`/`--cleanup` to surgically
+  merge the hook into `~/.claude/settings.json` without disturbing other keys)
 
 Availability of `tree` is helpful for following the tutorial (it lets you see
 the directory structure you build) but not absolutely necessary. With `curl`
@@ -41,11 +45,11 @@ located in the repository's subfolder `bin`).
     $ git clone https://github.com/aibex-hub/tool-ai-brain  # see tool-ai-brain/bin/ai-brain
 ```
 
-Tool `ai-brain` provides a version self-check:
+Tool `ai-brain` provides a dependency self-check and a version self-check:
 
 ```sh
-  $ ai-brain --version
-  1.0.1
+  $ ai-brain --check       # verify all required dependencies are installed
+  $ ai-brain --version     # print version
 ```
 
 
@@ -106,21 +110,29 @@ blocks.
 ## Commands
 
 ```
-ai-brain --setup      # install hook into the nearest AI-Brain (§-root)
-ai-brain --cleanup    # remove the hook
+ai-brain --setup      # install hook into ~/.claude/settings.json (global)
+ai-brain --cleanup    # remove the hook from ~/.claude/settings.json
 ai-brain --hook       # print masterspace context along cwd path
 ai-brain --tutorial   # step-by-step setup walkthrough
 ai-brain --help       # comprehensive help
 ai-brain --version    # print version
+ai-brain --check      # verify required dependencies are installed
 ai-brain -!           # install ai-brain into a PATH directory
 ai-brain -?           # brief usage
 ```
 
-`ai-brain --setup` finds the nearest `§`-prefixed directory above the current
-working directory and places a project-local `.claude/settings.json` there
-that wires `ai-brain --hook` into Claude Code's `UserPromptSubmit` hook. The
-global `~/.claude/settings.json` is **not** touched, so the hook only
-activates when Claude Code is run from inside the AI-Brain.
+`ai-brain --setup` wires `ai-brain --hook` into Claude Code's
+`UserPromptSubmit` hook by **merging** it into your global
+`~/.claude/settings.json` via `jq`. Other top-level keys in that file
+(e.g. `"theme"`, other hook types) are preserved; the operation is
+idempotent — running `--setup` twice does not register the hook twice.
+`--cleanup` performs the inverse and likewise leaves unrelated settings
+intact.
+
+Because the hook is registered globally, `ai-brain --hook` runs for **every**
+Claude Code invocation; the walk-up logic ensures it exits silently with no
+output when the current working directory has no `§`-prefixed ancestor with
+an `@/` masterspace.
 
 See `ai-brain --help` for full per-command descriptions.
 
@@ -131,9 +143,79 @@ See `ai-brain --help` for full per-command descriptions.
 |-----------------|--------------------------------------------------------|
 | `§<name>/`      | AI-Brain root                                          |
 | `@/`            | masterspace (context files, recursively)               |
-| `.claude/`      | configuration folder (project-local `settings.json`)   |
 
 
 ## License
 
 Apache License 2.0 — see [LICENSE](./LICENSE).
+
+
+## Appendix: Claude Code in a Bash Shell
+
+`ai-brain` runs as a small bash CLI and assumes you can reach a working `bash`
+prompt with the `claude` command available on it. This appendix shows how to
+get there on macOS, Linux, and Windows.
+
+### macOS
+
+1. Open `Terminal.app` or `iTerm2`.
+2. Install Node.js 18+ — easiest via [Homebrew](https://brew.sh):
+   ```sh
+   brew install node
+   ```
+3. Install Claude Code:
+   ```sh
+   npm install -g @anthropic-ai/claude-code
+   ```
+4. Run `claude`. The first invocation triggers a browser-based OAuth flow
+   against your Anthropic account.
+
+Alternative install methods (Homebrew formula, native installer) are
+documented at the [Claude Code docs](https://docs.claude.com/en/docs/claude-code).
+
+### Linux
+
+1. Open your terminal emulator (gnome-terminal, konsole, alacritty, …).
+2. Install Node.js 18+ for your distro:
+   - Ubuntu / Debian: `sudo apt install nodejs npm`
+   - Fedora:          `sudo dnf install nodejs npm`
+   - Arch:            `sudo pacman -S nodejs npm`
+3. Install Claude Code:
+   ```sh
+   npm install -g @anthropic-ai/claude-code
+   ```
+4. Run `claude` and authenticate via the browser flow.
+
+If your distro ships an older Node.js, install the current LTS from
+[nodesource.com](https://github.com/nodesource/distributions).
+
+### Windows
+
+Native Windows (`cmd`, PowerShell) is **not** supported by `ai-brain`,
+because the script relies on bash, `find`, and POSIX path semantics. The
+supported path is **WSL** (Windows Subsystem for Linux):
+
+1. Install WSL — open PowerShell as Administrator and run:
+   ```powershell
+   wsl --install
+   ```
+   This installs WSL plus the default Ubuntu distribution.
+2. After the prompted restart, open the **Ubuntu** entry from the Start
+   menu — you're now in a bash shell inside Linux.
+3. Inside WSL, install Node.js and Claude Code:
+   ```sh
+   sudo apt update && sudo apt install -y nodejs npm
+   npm install -g @anthropic-ai/claude-code
+   ```
+4. Run `claude` and authenticate via browser.
+
+From now on do all `ai-brain`-related work inside the WSL terminal —
+including the curl install at the top of this README. Files you create
+live under `~/` in the WSL filesystem and are reachable from Windows
+Explorer at `\\wsl$\Ubuntu\home\<your-user>`.
+
+---
+
+Once `claude` starts in your bash shell, go back to the
+[Curl Installation Formula](#curl-installation-formula) at the top to
+install `ai-brain` itself.
