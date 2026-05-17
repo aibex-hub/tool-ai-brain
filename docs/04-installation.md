@@ -271,7 +271,7 @@ Das entfernt die `ai-brain --context`-Einträge aus deiner globalen `~/.claude/s
 Am Ende von Teil 4 hast du:
 
 1. **`ai-brain` installiert** — via Claude Code aus dem GitHub-Repo `aibex-hub/tool-ai-brain`, mit `--version` / `--check` verifiziert.
-2. **Einen funktionierenden AI-Brain auf deinem System** — `§Privat/` mit sieben Wissens-Knoten und drei gefüllten Masterspaces.
+2. **Ein funktionierendes AI-Brain auf deinem System** — `§Privat/` mit sieben Wissens-Knoten und drei gefüllten Masterspaces.
 3. **Den Hook global registriert** — `ai-brain --setup` hat ihn in `~/.claude/settings.json` eingetragen; weil der Hook bei jedem cwd selbst entscheidet, ob er Kontext liefert, ist das unbedenklich.
 4. **Eine erste Probe-Anfrage durchgeführt** und gesehen, dass der Kontext entlang des Pfads aktiviert wird.
 5. **Drei Verifikations-Wege** in der Hand, mit denen du jederzeit kontrollieren kannst, ob die Aktivierung funktioniert.
@@ -282,11 +282,11 @@ Am Ende von Teil 4 hast du:
 Mit den bisherigen vier Teilen hast du das **minimale, vollständige Konzept** in der Hand. Was sich nun anbietet:
 
 - **Eigene Themenbereiche** aufnehmen: lösche die Beispiel-Verzeichnisse und ersetze sie durch deine tatsächlichen Arbeitsgebiete.
-- **Vorhandene Projekte** in den AI-Brain integrieren: lege einfach `@`-Unterordner an passenden Stellen an und fülle sie mit projektspezifischen Notizen.
+- **Vorhandene Projekte** in das AI-Brain integrieren: lege einfach `@`-Unterordner an passenden Stellen an und fülle sie mit projektspezifischen Notizen.
 - **Beobachten und Anpassen**: ändere die `.md`-Inhalte, wenn du merkst, dass Claude zu allgemein oder zu spezifisch antwortet — der Masterspace ist *deine* Stellschraube für Adäquanz.
 - **Spickzettel jederzeit abrufbar**: `ai-brain --tutorial` zeigt eine kompakte, copy-paste-fähige Schritt-für-Schritt-Variante dieser Anleitung als Terminal-Output.
 
-Der AI-Brain ist kein fertiges Produkt, sondern ein **Werkzeug, das mit dir wächst**. Beim ersten Mal ist er klein. Mit jeder Woche wird er besser an dein Denken angepasst — vorausgesetzt, du nutzt ihn aktiv und kuratierst seine Inhalte.
+Das AI-Brain ist kein fertiges Produkt, sondern ein **Werkzeug, das mit dir wächst**. Beim ersten Mal ist es klein. Mit jeder Woche wird es besser an dein Denken angepasst — vorausgesetzt, du nutzt es aktiv und kuratierst seine Inhalte.
 
 ## Glückwunsch
 

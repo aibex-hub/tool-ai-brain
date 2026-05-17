@@ -81,7 +81,7 @@
 #===============================================================================
 
    if [ "$*" == "--version" ] || [ "$*" == "--v" ]; then
-      echo "1.3.1"; exit 0
+      echo "1.3.2"; exit 0
    fi
 
 #===============================================================================
@@ -520,7 +520,8 @@ EOF
       for D in "${A[@]}"; do
          S="$D/@"
          if [ -d "$S" ]; then
-            find "$S" -name "*.md" -not -path "*/@/*/*" | sort | while IFS= read -r f; do
+            ec -g "=> processing $S" >&2
+            find "$S" -name "*.md" | sort | while IFS= read -r f; do
                echo "<skill src=\"$f\">"
                cat "$f"
                echo "</skill>"
