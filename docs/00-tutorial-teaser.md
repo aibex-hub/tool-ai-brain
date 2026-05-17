@@ -49,6 +49,8 @@ Die vier Tutorial-Teile liegen im selben Ordner wie dieser Teaser:
 | 3 | `03 AI-Brain — Aufbau und Aktivierung (vereinfacht).md` |
 | 4 | `04 AI-Brain — Installation Schritt für Schritt.md` |
 
+Online verfügbar: dieselben vier Tutorial-Teile (samt diesem Teaser) sind auch im README des GitHub-Repos [aibex-hub/tool-ai-brain](https://github.com/aibex-hub/tool-ai-brain) verlinkt — gleich nach der Curl-Installations-Formel.
+
 Zeitaufwand: ca. 30 Minuten Lesen, ca. 10 Minuten für die praktische Installation.
 
 Viel Erfolg.
