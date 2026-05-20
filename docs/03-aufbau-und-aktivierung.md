@@ -182,7 +182,7 @@ Am Ende von Teil 3 solltest du folgendes klar erkannt haben — und idealerweise
 
 5. Seitenäste, die nicht auf dem aktivierten Pfad liegen, sowie Verzeichnisse ohne `@/`, werden **automatisch ignoriert** — damit ist die Pfad-Aktivierung aus Teil 2 mechanisch umgesetzt.
 
-6. Du kannst einen eigenen, minimal funktionierenden AI-Brain aufsetzen: Verzeichnisse anlegen, @-Unterordner als Masterspace darin, `.md`-Dateien einfügen, Hook konfigurieren — fertig.
+6. Du kannst ein eigenes, minimal funktionierendes AI-Brain aufsetzen: Verzeichnisse anlegen, @-Unterordner als Masterspace darin, `.md`-Dateien einfügen, Hook konfigurieren — fertig.
 
 ## Ausblick — was hier nicht behandelt wurde
 
