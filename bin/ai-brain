@@ -556,13 +556,19 @@ EOF
                *)  continue ;;
             esac
          fi
+         ec -c "$D"
          if [ -d "$D/@" ]; then
-            ec -c "$D"
-            find "$D/@" -name "*.md" | sort | while IFS= read -r f; do
-               ec -g "   $(basename "$f")"
-            done
-         else
-            ec "$D"
+            find "$D/@" -name "*.md" | sort | (
+               last=""
+               while IFS= read -r f; do
+                  p="$(dirname "$f")"
+                  if [ "$p" != "$last" ]; then
+                     ec "$p"
+                     last="$p"
+                  fi
+                  ec -y "   $(basename "$f")"
+               done
+            )
          fi
       done
       exit 0
