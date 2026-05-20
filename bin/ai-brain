@@ -2,7 +2,7 @@
 # ai-brain: helper and maintenance utility for AI-Brains
 
    if [ "$*" == "-?" ]; then
-      ec -g '   ai-brain: helper and maintenance utility for AI-Brains'
+      ec -g "   ai-brain: helper and maintenance utility for AI-Brains (version `ai-brain --version`)"
       echo '   usage: ai-brain --setup       # install hook into AI-Brain'
       echo '          ai-brain --cleanup     # remove hook'
       echo '          ai-brain --demo        # create example AI-Brain at ~/§Privat'
@@ -526,6 +526,43 @@ EOF
                cat "$f"
                echo "</skill>"
             done
+         fi
+      done
+      exit 0
+   fi
+
+#===============================================================================
+# no args: directory walk with masterspace listing
+#   - cyan : project directories (those carrying an @/ masterspace)
+#   - white: ancestor directories without @/
+#   - green: .md filenames inside @/ directories
+#===============================================================================
+
+   if [ -z "$*" ]; then
+      D="$PWD"
+      A=()
+      while [ "$D" != "/" ]; do
+         A=("$D" "${A[@]}")
+         D="$(dirname "$D")"
+      done
+      inside=0
+      for D in "${A[@]}"; do
+         # skip paths containing any dot-prefixed component (.claude, .pimp, .git, …)
+         case "$D" in */.*) continue ;; esac
+         # skip ancestors above the AI-Brain root (the first §-prefixed directory)
+         if [ "$inside" -eq 0 ]; then
+            case "$(basename "$D")" in
+               §*) inside=1 ;;
+               *)  continue ;;
+            esac
+         fi
+         if [ -d "$D/@" ]; then
+            ec -c "$D"
+            find "$D/@" -name "*.md" | sort | while IFS= read -r f; do
+               ec -g "   $(basename "$f")"
+            done
+         else
+            ec "$D"
          fi
       done
       exit 0
