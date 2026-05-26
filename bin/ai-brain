@@ -2,7 +2,7 @@
 # ai-brain: helper and maintenance utility for AI-Brains
 
    if [ "$*" == "-?" ]; then
-      ec -g '   ai-brain: helper and maintenance utility for AI-Brains'
+      ai-brain ---g "   ai-brain: helper and maintenance utility for AI-Brains (version `ai-brain --version`)"
       echo '   usage: ai-brain --setup       # install hook into AI-Brain'
       echo '          ai-brain --cleanup     # remove hook'
       echo '          ai-brain --demo        # create example AI-Brain at ~/§Privat'
@@ -12,7 +12,7 @@
       echo '          ai-brain --version     # print version'
       echo '          ai-brain --check       # verify required dependencies are installed'
       echo '          ai-brain -!            # install ai-brain into a PATH directory'
-      echo '   see also: chk, ec, pimp'
+      echo '   see also: chk, pimp'
       exit 1
    fi
 
@@ -23,31 +23,31 @@
    if [ "$*" == "--help" ]; then
       echo '   ai-brain — central CLI for an AI-Brain'
       echo ''
-      ec -g '   Concept:'
+      ai-brain ---g '   Concept:'
       echo '     An AI-Brain is a directory hierarchy whose root starts with'
       echo '     a §-prefix, where each node may carry an @-subfolder (the'
       echo '     masterspace). On every AI query the masterspaces along the'
       echo '     cwd path are activated as context.'
       echo ''
-      ec -g '   Commands:'
-      ec -y '     ai-brain --setup'
+      ai-brain ---g '   Commands:'
+      ai-brain ---y '     ai-brain --setup'
       echo '         Finds the AI-Brain root (the nearest § directory above'
       echo '         cwd) and places a .claude/settings.json there with a'
       echo '         UserPromptSubmit hook that invokes ai-brain --context. An'
       echo '         existing settings.json is overwritten.'
       echo ''
-      ec -y '     ai-brain --cleanup'
+      ai-brain ---y '     ai-brain --cleanup'
       echo '         Removes the settings.json created by --setup. Masterspaces'
       echo '         and directory structure remain untouched.'
       echo ''
-      ec -y '     ai-brain --demo'
+      ai-brain ---y '     ai-brain --demo'
       echo '         Creates the example AI-Brain at ~/§Privat — directory tree'
       echo '         plus seven pre-populated masterspace .md files covering'
       echo '         recipes (with dishes/drinks sub-branches) and electronics'
       echo '         development (power + RF sub-branches). Refuses to run if'
       echo '         ~/§Privat already exists.'
       echo ''
-      ec -y '     ai-brain --context'
+      ai-brain ---y '     ai-brain --context'
       echo '         Walks up from the current directory to the filesystem'
       echo '         root, collecting every @-subfolder along the way and'
       echo '         printing its .md contents as <skill src="…"> blocks on'
@@ -55,24 +55,24 @@
       echo '         hook installed by --setup invokes this command on every'
       echo '         query.'
       echo ''
-      ec -y '     ai-brain --tutorial'
+      ai-brain ---y '     ai-brain --tutorial'
       echo '         Prints a step-by-step setup walkthrough with copy-paste'
       echo '         ready bash blocks.'
       echo ''
-      ec -y '     ai-brain --version'
+      ai-brain ---y '     ai-brain --version'
       echo '         Prints the version number.'
       echo ''
-      ec -y '     ai-brain --check'
-      echo '         Verifies that all required dependencies (ec, jq, claude) and'
-      echo '         optional ones (tree) are available on PATH; reports OK/FAIL'
-      echo '         per item with a fix hint. Exit 0 if all required pass.'
+      ai-brain ---y '     ai-brain --check'
+      echo '         Verifies that the required dependencies (jq, claude) and the'
+      echo '         optional one (tree) are available on PATH; reports OK/FAIL/'
+      echo '         WARN per item with a fix hint. Exit 0 if all required pass.'
       echo ''
-      ec -g '   Conventions:'
+      ai-brain ---g '   Conventions:'
       echo '     §<name>/        AI-Brain root'
       echo '     @/              masterspace (context files)'
       echo '     .claude/        configuration folder (settings.json)'
       echo ''
-      echo '   see also: chk, ec'
+      echo '   see also: chk, pimp'
       exit 1
    fi
 
@@ -81,7 +81,7 @@
 #===============================================================================
 
    if [ "$*" == "--version" ] || [ "$*" == "--v" ]; then
-      echo "1.3.3"; exit 0
+      echo "1.3.7"; exit 0
    fi
 
 #===============================================================================
@@ -89,47 +89,37 @@
 #===============================================================================
 
    if [ "$*" == "--check" ]; then
-      if ! command -v ec >/dev/null 2>&1; then
-         echo "checking ai-brain dependencies ..."
-         echo "  FAIL: ec (color-echo helper, Bluccino toolchain) not found"
-         echo "        => install from https://github.com/bluccino/tool-ec"
-         echo "  (skipping further checks — ec is needed for coloured output)"
-         exit 1
-      fi
-      ec -c "checking ai-brain dependencies ..."
+      ai-brain ---c "checking ai-brain dependencies ..."
       ERR=0
-
-      # ec — already verified above
-      ec -g "  OK:   ec (color-echo helper, Bluccino toolchain)"
 
       # jq — JSON manipulation, used by --setup and --cleanup
       if command -v jq >/dev/null 2>&1; then
-         ec -g "  OK:   jq (JSON manipulator, used by --setup/--cleanup)"
+         ai-brain ---g "  OK:   jq (JSON manipulator, used by --setup/--cleanup)"
       else
-         ec -r "  FAIL: jq not found => brew install jq   or   apt install jq"
+         ai-brain ---r "  FAIL: jq not found => brew install jq   or   apt install jq"
          ERR=1
       fi
 
       # claude — the Claude Code CLI that consumes the hook
       if command -v claude >/dev/null 2>&1; then
-         ec -g "  OK:   claude (Claude Code CLI)"
+         ai-brain ---g "  OK:   claude (Claude Code CLI)"
       else
-         ec -r "  FAIL: claude not found => https://docs.claude.com/en/docs/claude-code"
+         ai-brain ---r "  FAIL: claude not found => https://docs.claude.com/en/docs/claude-code"
          ERR=1
       fi
 
       # tree — optional, used by the embedded tutorial for directory visualization
       if command -v tree >/dev/null 2>&1; then
-         ec -g "  OK:   tree (optional, used by tutorial for directory visualization)"
+         ai-brain ---g "  OK:   tree (optional, used by tutorial for directory visualization)"
       else
-         ec -m "  WARN: tree not found (optional) => brew install tree   or   apt install tree"
+         ai-brain ---m "  WARN: tree not found (optional) => brew install tree   or   apt install tree"
       fi
 
       if [ "$ERR" != 0 ]; then
-         ec -r "=> required dependencies missing"
+         ai-brain ---r "=> required dependencies missing"
          exit 1
       fi
-      ec -g "=> all required dependencies installed"
+      ai-brain ---g "=> all required dependencies installed"
       exit 0
    fi
 
@@ -138,9 +128,9 @@
 #===============================================================================
 
    if [ "$*" == "--tutorial" ]; then
-      ec -g 'AI-Brain — Step-by-Step Setup Tutorial'
+      ai-brain ---g 'AI-Brain — Step-by-Step Setup Tutorial'
       echo ''
-      ec -c 'Step 1: Create the directory tree'
+      ai-brain ---c 'Step 1: Create the directory tree'
       echo ''
       cat <<'BLOCK'
 mkdir -p \
@@ -154,15 +144,15 @@ mkdir -p \
   ~/§Privat/Elektronikentwicklung/HF-Elektronik/@
 BLOCK
       echo ''
-      ec -c 'Step 2: Inspect the directory tree'
+      ai-brain ---c 'Step 2: Inspect the directory tree'
       echo ''
       cat <<'BLOCK'
 tree -a ~/§Privat
 BLOCK
       echo ''
-      ec -c 'Step 3: Fill the masterspaces'
+      ai-brain ---c 'Step 3: Fill the masterspaces'
       echo ''
-      ec -c 'Root masterspace (applies to every query):'
+      ai-brain ---c 'Root masterspace (applies to every query):'
       echo ''
       cat <<'BLOCK'
 cat > ~/§Privat/@/persoenliche-allgemein.md <<'EOF'
@@ -175,7 +165,7 @@ cat > ~/§Privat/@/persoenliche-allgemein.md <<'EOF'
 EOF
 BLOCK
       echo ''
-      ec -c 'Recipes masterspace:'
+      ai-brain ---c 'Recipes masterspace:'
       echo ''
       cat <<'BLOCK'
 cat > ~/§Privat/Lieblingsrezepte/@/rezept-vorlieben.md <<'EOF'
@@ -188,7 +178,7 @@ cat > ~/§Privat/Lieblingsrezepte/@/rezept-vorlieben.md <<'EOF'
 EOF
 BLOCK
       echo ''
-      ec -c 'Dishes subspace:'
+      ai-brain ---c 'Dishes subspace:'
       echo ''
       cat <<'BLOCK'
 cat > ~/§Privat/Lieblingsrezepte/Lieblingsspeisen/@/speisen-praeferenzen.md <<'EOF'
@@ -200,19 +190,19 @@ cat > ~/§Privat/Lieblingsrezepte/Lieblingsspeisen/@/speisen-praeferenzen.md <<'
 EOF
 BLOCK
       echo ''
-      ec -c 'Step 4: Inspect the populated tree'
+      ai-brain ---c 'Step 4: Inspect the populated tree'
       echo ''
       cat <<'BLOCK'
 tree -a ~/§Privat
 BLOCK
       echo ''
-      ec -c 'Step 5: Install the hook'
+      ai-brain ---c 'Step 5: Install the hook'
       echo ''
       cat <<'BLOCK'
 ai-brain --setup
 BLOCK
       echo ''
-      ec -c 'Step 6: First probe query'
+      ai-brain ---c 'Step 6: First probe query'
       echo ''
       cat <<'BLOCK'
 cd ~/§Privat/Lieblingsrezepte/Lieblingsspeisen
@@ -222,16 +212,16 @@ BLOCK
       echo 'Inside Claude, try a prompt such as:'
       echo '"Suggest an apple-strudel variation with less sugar."'
       echo ''
-      ec -c 'Step 7: Verify'
+      ai-brain ---c 'Step 7: Verify'
       echo ''
-      ec -c 'Direct context probe (shows what Claude would receive):'
+      ai-brain ---c 'Direct context probe (shows what Claude would receive):'
       echo ''
       cat <<'BLOCK'
 cd ~/§Privat/Lieblingsrezepte/Lieblingsspeisen
 ai-brain --context
 BLOCK
       echo ''
-      ec -c 'Side-branch comparison (Elektronik instead of Rezepte):'
+      ai-brain ---c 'Side-branch comparison (Elektronik instead of Rezepte):'
       echo ''
       cat <<'BLOCK'
 cd ~/§Privat/Elektronikentwicklung/Leistungselektronik
@@ -240,7 +230,7 @@ BLOCK
       echo ''
       echo 'Different masterspaces should be activated.'
       echo ''
-      ec -c 'Step 8 (optional): Remove the hook'
+      ai-brain ---c 'Step 8 (optional): Remove the hook'
       echo ''
       cat <<'BLOCK'
 ai-brain --cleanup
@@ -272,16 +262,16 @@ BLOCK
          touch "$DIR/_junk_" 2>/dev/null || ERR="1"
          rm -f "$DIR/_junk_" 2>/dev/null
 
-         ec -g "=== installing ai-brain in $DIR ..."
+         ai-brain ---g "=== installing ai-brain in $DIR ..."
          if [ "$ERR" == "0" ]; then
-            ec -y "  cp ~ai-brain $DIR/ai-brain"
+            ai-brain ---y "  cp ~ai-brain $DIR/ai-brain"
             cp ~ai-brain "$DIR/ai-brain" || exit 1
          else
-            ec -c "  this is a protected directory which uses a password!"
-            ec -y "  sudo cp ~ai-brain $DIR/ai-brain"
+            ai-brain ---c "  this is a protected directory which uses a password!"
+            ai-brain ---y "  sudo cp ~ai-brain $DIR/ai-brain"
             sudo cp ~ai-brain "$DIR/ai-brain" || exit 1
          fi
-         ec -g "=== successful installation of ai-brain"
+         ai-brain ---g "=== successful installation of ai-brain"
          echo "  => enter: ai-brain -?   # to see usage"
 
          rm -f ~ai-brain
@@ -296,26 +286,26 @@ BLOCK
 
    if [ "$*" == "--setup" ]; then
       if ! command -v ai-brain >/dev/null 2>&1; then
-         ec -r "ai-brain not found on PATH"
-         ec -r "   install ai-brain into a PATH directory first (e.g. ai-brain -!)"
+         ai-brain ---r "ai-brain not found on PATH"
+         ai-brain ---r "   install ai-brain into a PATH directory first (e.g. ai-brain -!)"
          exit 1
       fi
       HOOK_CMD="ai-brain --context"
       SETTINGS="$HOME/.claude/settings.json"
 
-      ec -c "hook command:  $HOOK_CMD"
-      ec -c "settings file: $SETTINGS"
+      ai-brain ---c "hook command:  $HOOK_CMD"
+      ai-brain ---c "settings file: $SETTINGS"
 
-      ec -y "=> ensuring $(dirname "$SETTINGS") exists"
+      ai-brain ---y "=> ensuring $(dirname "$SETTINGS") exists"
       mkdir -p "$(dirname "$SETTINGS")" || exit 1
 
       INPUT=$(cat "$SETTINGS" 2>/dev/null || echo '{}')
       if ! printf '%s' "$INPUT" | jq empty 2>/dev/null; then
-         ec -r "$SETTINGS exists but is not valid JSON. Aborting."
+         ai-brain ---r "$SETTINGS exists but is not valid JSON. Aborting."
          exit 1
       fi
 
-      ec -y "=> merging UserPromptSubmit hook into settings.json"
+      ai-brain ---y "=> merging UserPromptSubmit hook into settings.json"
       NEW=$(printf '%s' "$INPUT" | jq --arg cmd "$HOOK_CMD" '
         .hooks //= {}
         | .hooks.UserPromptSubmit //= []
@@ -331,7 +321,7 @@ BLOCK
       printf '%s\n' "$NEW" > "$TMP"
       mv "$TMP" "$SETTINGS" || exit 1
 
-      ec -g "OK — hook installed in $SETTINGS"
+      ai-brain ---g "OK — hook installed in $SETTINGS"
       exit 0
    fi
 
@@ -343,21 +333,21 @@ BLOCK
       HOOK_CMD="ai-brain --context"
       SETTINGS="$HOME/.claude/settings.json"
 
-      ec -c "hook command:  $HOOK_CMD"
-      ec -c "settings file: $SETTINGS"
+      ai-brain ---c "hook command:  $HOOK_CMD"
+      ai-brain ---c "settings file: $SETTINGS"
 
       if [ ! -f "$SETTINGS" ]; then
-         ec -m "no $SETTINGS to clean"
+         ai-brain ---m "no $SETTINGS to clean"
          exit 0
       fi
 
       INPUT=$(cat "$SETTINGS")
       if ! printf '%s' "$INPUT" | jq empty 2>/dev/null; then
-         ec -r "$SETTINGS exists but is not valid JSON. Aborting."
+         ai-brain ---r "$SETTINGS exists but is not valid JSON. Aborting."
          exit 1
       fi
 
-      ec -y "=> removing UserPromptSubmit entries that invoke ai-brain --context"
+      ai-brain ---y "=> removing UserPromptSubmit entries that invoke ai-brain --context"
       NEW=$(printf '%s' "$INPUT" | jq --arg cmd "$HOOK_CMD" '
         if .hooks.UserPromptSubmit then
           .hooks.UserPromptSubmit |= map(
@@ -374,7 +364,7 @@ BLOCK
       printf '%s\n' "$NEW" > "$TMP"
       mv "$TMP" "$SETTINGS" || exit 1
 
-      ec -g "OK — hook removed from $SETTINGS"
+      ai-brain ---g "OK — hook removed from $SETTINGS"
       exit 0
    fi
 
@@ -384,12 +374,12 @@ BLOCK
 
    if [ "$*" == "--demo" ]; then
       if [ -d ~/§Privat ]; then
-         ec -r "~/§Privat already exists — refusing to overwrite"
-         ec -r "   delete it manually (rm -rf ~/§Privat) if you really want to re-create the demo"
+         ai-brain ---r "~/§Privat already exists — refusing to overwrite"
+         ai-brain ---r "   delete it manually (rm -rf ~/§Privat) if you really want to re-create the demo"
          exit 1
       fi
 
-      ec -y "=> creating directory tree under ~/§Privat"
+      ai-brain ---y "=> creating directory tree under ~/§Privat"
       mkdir -p \
          ~/§Privat/@ \
          ~/§Privat/Lieblingsrezepte/@ \
@@ -399,7 +389,7 @@ BLOCK
          ~/§Privat/Elektronikentwicklung/Leistungselektronik/@ \
          ~/§Privat/Elektronikentwicklung/HF-Elektronik/@ || exit 1
 
-      ec -y "=> writing root masterspace"
+      ai-brain ---y "=> writing root masterspace"
       cat > ~/§Privat/@/persoenliche-allgemein.md <<'EOF'
 # Persönliche allgemeine Präferenzen
 
@@ -409,7 +399,7 @@ BLOCK
 - Bei Code-Beispielen: kommentiere sparsam, nur wo es nicht-offensichtlich ist
 EOF
 
-      ec -y "=> writing Lieblingsrezepte masterspaces"
+      ai-brain ---y "=> writing Lieblingsrezepte masterspaces"
       cat > ~/§Privat/Lieblingsrezepte/@/rezept-vorlieben.md <<'EOF'
 # Rezept-Vorlieben
 
@@ -437,7 +427,7 @@ EOF
 - Wein: trockene Weiße aus Österreich (Grüner Veltliner), spritzige Rosés
 EOF
 
-      ec -y "=> writing Elektronikentwicklung masterspaces"
+      ai-brain ---y "=> writing Elektronikentwicklung masterspaces"
       cat > ~/§Privat/Elektronikentwicklung/@/bauteil-bestand.md <<'EOF'
 # Bauteil-Bestand und Hersteller-Präferenzen
 
@@ -501,8 +491,8 @@ EOF
 - Spektrum: TinySA für Voruntersuchungen, RSA für ernsthafte Messungen
 EOF
 
-      ec -g "OK — demo AI-Brain created at ~/§Privat (7 masterspaces populated)"
-      ec -c "next step: ai-brain --setup   # register the hook so Claude Code uses the context"
+      ai-brain ---g "OK — demo AI-Brain created at ~/§Privat (7 masterspaces populated)"
+      ai-brain ---c "next step: ai-brain --setup   # register the hook so Claude Code uses the context"
       exit 0
    fi
 
@@ -511,6 +501,15 @@ EOF
 #===============================================================================
 
    if [ "$*" == "--context" ]; then
+      #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+      LOG=~/.claude/log
+      if [ ! -d $LOG ]; then
+          mkdir $LOG
+      fi
+      TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+      echo "$TIMESTAMP: ai-brain --context: "$(pwd) >>$LOG/ai-brain.log
+      #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<$LOG<<<<<<<<<<<<<<<<<<<<<<
+
       D="$PWD"
       A=()
       while [ "$D" != "/" ]; do
@@ -520,7 +519,7 @@ EOF
       for D in "${A[@]}"; do
          S="$D/@"
          if [ -d "$S" ]; then
-            ec -g "=> processing $S" >&2
+            ai-brain ---g "=> processing $S" >&2
             find "$S" -name "*.md" | sort | while IFS= read -r f; do
                echo "<skill src=\"$f\">"
                cat "$f"
@@ -530,6 +529,62 @@ EOF
       done
       exit 0
    fi
+
+#===============================================================================
+# no args: directory walk with masterspace listing
+#   - cyan : project directories (those carrying an @/ masterspace)
+#   - white: ancestor directories without @/
+#   - green: .md filenames inside @/ directories
+#===============================================================================
+
+   if [ -z "$*" ]; then
+      D="$PWD"
+      A=()
+      while [ "$D" != "/" ]; do
+         A=("$D" "${A[@]}")
+         D="$(dirname "$D")"
+      done
+      inside=0
+      for D in "${A[@]}"; do
+         # skip paths containing any dot-prefixed component (.claude, .pimp, .git, …)
+         case "$D" in */.*) continue ;; esac
+         # skip ancestors above the AI-Brain root (the first §-prefixed directory)
+         if [ "$inside" -eq 0 ]; then
+            case "$(basename "$D")" in
+               §*) inside=1 ;;
+               *)  continue ;;
+            esac
+         fi
+         ai-brain ---c "$D"
+         if [ -d "$D/@" ]; then
+            find "$D/@" -name "*.md" | sort | (
+               last=""
+               while IFS= read -r f; do
+                  p="$(dirname "$f")"
+                  if [ "$p" != "$last" ]; then
+                     echo "$p"
+                     last="$p"
+                  fi
+                  ai-brain ---y "   $(basename "$f")"
+               done
+            )
+         fi
+      done
+      exit 0
+   fi
+
+#===============================================================================
+# internal color helpers: ai-brain ---r/g/y/b/m/c "text"
+# (undocumented self-call dispatches that replace the external `ec` dependency
+#  — same ANSI codes that bluccino/tool-ec emits)
+#===============================================================================
+
+   if [ "$1" == "---r" ]; then printf "\x1b[31m"; shift; echo "$*"; printf "\x1b[0m"; exit 0; fi
+   if [ "$1" == "---g" ]; then printf "\x1b[32m"; shift; echo "$*"; printf "\x1b[0m"; exit 0; fi
+   if [ "$1" == "---y" ]; then printf "\x1b[33m"; shift; echo "$*"; printf "\x1b[0m"; exit 0; fi
+   if [ "$1" == "---b" ]; then printf "\x1b[34m"; shift; echo "$*"; printf "\x1b[0m"; exit 0; fi
+   if [ "$1" == "---m" ]; then printf "\x1b[35m"; shift; echo "$*"; printf "\x1b[0m"; exit 0; fi
+   if [ "$1" == "---c" ]; then printf "\x1b[36m"; shift; echo "$*"; printf "\x1b[0m"; exit 0; fi
 
 #===============================================================================
 # cannot deal with anything else ...
