@@ -71,7 +71,7 @@ Zurück im Bash-Prompt, prüfe die Installation mit drei kleinen Aufrufen:
 ai-brain --version
 ```
 
-erwartet eine Versionsnummer (z. B. `1.3.3`).
+erwartet eine Versionsnummer (z. B. `1.3.4`).
 
 ```bash
 ai-brain -?

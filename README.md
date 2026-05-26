@@ -44,15 +44,20 @@ the Quick Start below.
 
 Pre-requisites for `ai-brain` are a `bash` environment (as supported by Linux,
 Mac-OS and Windows/WSL), [Claude Code](https://docs.claude.com/en/docs/claude-code)
-installed and authenticated, and two helper tools:
+installed and authenticated, and **one** helper tool:
 
-* `ec` — the color-echo helper from the Bluccino toolchain, hosted at
-  [bluccino/tool-ec](https://github.com/bluccino/tool-ec) (used for all coloured output)
 * `jq` — JSON command-line processor (used by `--setup`/`--cleanup` to surgically
   merge the hook into `~/.claude/settings.json` without disturbing other keys)
 
-Availability of `tree` is helpful for following the tutorial (it lets you see
-the directory structure you build) but not absolutely necessary. With `curl`
+Two further tools are **optional** — `ai-brain` works without them but is a bit
+nicer with them:
+
+* `ec` — colour-echo helper from the Bluccino toolchain, hosted at
+  [bluccino/tool-ec](https://github.com/bluccino/tool-ec). If `ec` is not on
+  PATH, `ai-brain` falls back to an internal coloured-output function with the
+  same effect, so you can skip the install entirely on a first try.
+* `tree` — used by the tutorial for directory visualization. Without it the
+  `tree -a` steps in the tutorial simply fail with `command not found`. With `curl`
 installed the section above shows an easy way to download and install
 `ai-brain`. Alternatively, cloning the repository and copying `bin/ai-brain` to
 a binary directory listed in `$PATH` will also do the job (`ai-brain` is
