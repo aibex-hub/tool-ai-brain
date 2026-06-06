@@ -88,7 +88,7 @@
 #===============================================================================
 
    if [ "$*" == "--version" ] || [ "$*" == "--v" ]; then
-      echo "1.3.10"; exit 0
+      echo "1.3.11"; exit 0
    fi
 
 #===============================================================================
@@ -109,7 +109,7 @@
          echo 'INSTRUCTION: The current working directory is not inside an AI-Brain (no §-prefixed root found above cwd). Do not load any AI-Brain context.'
          exit 0
       fi
-      echo "INSTRUCTION: The current AI-Brain root is \"$ROOT\". Load context only when needed: if you have NOT yet loaded AI-Brain context in this session, OR the root recorded on the first line of /tmp/ai-brain-context.txt (format: AI-BRAIN-ROOT: <path>) differs from the current root above, then run \`ai-brain --context > /tmp/ai-brain-context.txt\` via the Bash tool and read /tmp/ai-brain-context.txt via the Read tool. Otherwise the already-loaded context is still current for this project — do nothing."
+      echo "INSTRUCTION: The current AI-Brain root is \"$ROOT\". Load context only when needed: if you have NOT yet loaded AI-Brain context in this session, OR the current working directory (cwd) recorded on the first line of /tmp/ai-brain-context.txt (format: AI-BRAIN-ROOT: <path>) differs from the cwd, then run \`ai-brain --context > /tmp/ai-brain-context.txt\` via the Bash tool and read /tmp/ai-brain-context.txt via the Read tool. Otherwise the already-loaded context is still current for this project — do nothing."
       exit 0
    fi
 
