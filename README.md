@@ -132,9 +132,11 @@ blocks.
 ## Commands
 
 ```
-ai-brain --setup      # install hook into ~/.claude/settings.json (global)
-ai-brain --cleanup    # remove the hook from ~/.claude/settings.json
+ai-brain --setup      # install hooks into ~/.claude/settings.json (global)
+ai-brain --cleanup    # remove the hooks from ~/.claude/settings.json
 ai-brain --context    # print masterspace context along cwd path
+ai-brain --id         # print masterspace id (id=… files=… cwd=…)
+ai-brain --load       # split context into part files for reading
 ai-brain --tutorial   # step-by-step setup walkthrough
 ai-brain --help       # comprehensive help
 ai-brain --version    # print version
@@ -143,18 +145,27 @@ ai-brain -!           # install ai-brain into a PATH directory
 ai-brain -?           # brief usage
 ```
 
-`ai-brain --setup` wires `ai-brain --context` into Claude Code's
-`UserPromptSubmit` hook by **merging** it into your global
-`~/.claude/settings.json` via `jq`. Other top-level keys in that file
-(e.g. `"theme"`, other hook types) are preserved; the operation is
-idempotent — running `--setup` twice does not register the hook twice.
-`--cleanup` performs the inverse and likewise leaves unrelated settings
-intact.
+`ai-brain --setup` registers two hooks by **merging** them into your global
+`~/.claude/settings.json` via `jq`:
 
-Because the hook is registered globally, `ai-brain --context` runs for **every**
-Claude Code invocation; the walk-up logic ensures it exits silently with no
-output when the current working directory has no `§`-prefixed ancestor with
-an `@/` masterspace.
+| Hook               | Command              | Effect                                             |
+|--------------------|----------------------|----------------------------------------------------|
+| `SessionStart`     | `ai-brain --session` | loads the masterspace at startup, resume, clear and after compaction — inline if it fits into `$AI_BRAIN_INLINE_LIMIT` characters (default 9000), otherwise as a mandatory list of part files (`ai-brain --load`) |
+| `UserPromptSubmit` | `ai-brain --advise`  | reports the expected masterspace id on every prompt; Claude reloads if the matching markers are missing |
+
+The context is enclosed in `<masterspace id="…">` … `</masterspace id="…">`.
+The id is a hash over cwd, file paths and contents, so a complete load can be
+verified and a changed masterspace is detected. The skill `/masterspace`
+performs this check on demand.
+
+Other top-level keys in that file (e.g. `"theme"`, other hooks) are
+preserved; the operation is idempotent — running `--setup` twice does not
+register the hooks twice. `--cleanup` performs the inverse and likewise
+leaves unrelated settings intact.
+
+Because the hooks are registered globally, they run for **every** Claude Code
+session; they exit silently with no output when the current working directory
+has no `§`-prefixed ancestor.
 
 See `ai-brain --help` for full per-command descriptions.
 
