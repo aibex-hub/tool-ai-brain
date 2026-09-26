@@ -7,6 +7,8 @@
       echo '          ai-brain --cleanup     # remove hook'
       echo '          ai-brain --demo        # create example AI-Brain at ~/§Privat'
       echo '          ai-brain --context     # print masterspace context along cwd path'
+      echo '          ai-brain --id          # print masterspace id (id=… files=… cwd=…)'
+      echo '          ai-brain --load        # split context into part files for reading'
       echo '          ai-brain --tutorial    # step-by-step setup walkthrough'
       echo '          ai-brain --help        # comprehensive help'
       echo '          ai-brain --version     # print version'
@@ -31,14 +33,13 @@
       echo ''
       ai-brain ---g '   Commands:'
       ai-brain ---y '     ai-brain --setup'
-      echo '         Finds the AI-Brain root (the nearest § directory above'
-      echo '         cwd) and places a .claude/settings.json there with a'
-      echo '         UserPromptSubmit hook that invokes ai-brain --advise. An'
-      echo '         existing settings.json is overwritten.'
+      echo '         Merges two hooks into ~/.claude/settings.json: a SessionStart'
+      echo '         hook (ai-brain --session) and a UserPromptSubmit hook'
+      echo '         (ai-brain --advise). Existing settings are preserved.'
       echo ''
       ai-brain ---y '     ai-brain --cleanup'
-      echo '         Removes the settings.json created by --setup. Masterspaces'
-      echo '         and directory structure remain untouched.'
+      echo '         Removes both ai-brain hooks from ~/.claude/settings.json.'
+      echo '         Masterspaces and directory structure remain untouched.'
       echo ''
       ai-brain ---y '     ai-brain --demo'
       echo '         Creates the example AI-Brain at ~/§Privat — directory tree'
@@ -47,20 +48,37 @@
       echo '         development (power + RF sub-branches). Refuses to run if'
       echo '         ~/§Privat already exists.'
       echo ''
+      ai-brain ---y '     ai-brain --session'
+      echo '         SessionStart hook (startup, resume, clear, compact). Reads'
+      echo '         the hook JSON from stdin (cwd). If the context fits into'
+      echo '         $AI_BRAIN_INLINE_LIMIT characters (default 9000), it is'
+      echo '         injected directly; otherwise a mandatory instruction to'
+      echo '         read the part files of ai-brain --load is emitted.'
+      echo ''
       ai-brain ---y '     ai-brain --advise'
-      echo '         Outputs a one-line instruction (embedding the current'
-      echo '         §-root) that tells Claude Code to run `ai-brain --context`'
-      echo '         via Bash whenever the context is not yet loaded OR the'
-      echo '         §-root changed since the last load (i.e. on project-folder'
-      echo '         change). Used by the UserPromptSubmit hook — keeps hook'
-      echo '         output small so the full context is loaded via a Bash call.'
+      echo '         UserPromptSubmit hook. Emits the expected masterspace id'
+      echo '         for the cwd and tells Claude to reload (ai-brain --load)'
+      echo '         if the matching begin/end markers are not in its context.'
+      echo '         Safety net for a missing SessionStart hook or a changed'
+      echo '         masterspace.'
       echo ''
       ai-brain ---y '     ai-brain --context'
-      echo '         Walks up from the current directory to the filesystem'
-      echo '         root, collecting every @-subfolder along the way and'
-      echo '         printing its .md contents as <skill src="…"> blocks on'
-      echo '         stdout. Invoked by Claude Code on the first prompt of each'
-      echo '         chat session (triggered via ai-brain --advise hook).'
+      echo '         Walks from the filesystem root down to the current'
+      echo '         directory, collecting every @-subfolder along the way and'
+      echo '         printing its .md contents as <skill src="…"> blocks,'
+      echo '         enclosed in <masterspace id="…"> … </masterspace id="…">.'
+      echo ''
+      ai-brain ---y '     ai-brain --id'
+      echo '         Prints "id=<8 hex> files=<n> cwd=<path>". The id is a hash'
+      echo '         over cwd, file paths and contents — it changes whenever'
+      echo '         the project folder or any masterspace file changes.'
+      echo '         Prints "no AI-Brain" outside of a §-rooted hierarchy.'
+      echo ''
+      ai-brain ---y '     ai-brain --load'
+      echo '         Writes the context into part files (<= 40 KB each) under'
+      echo '         ~/.claude/masterspace/<id>/ and prints the list of files'
+      echo '         Claude has to read completely. Used by --session, --advise'
+      echo '         and the /masterspace skill.'
       echo ''
       ai-brain ---y '     ai-brain --tutorial'
       echo '         Prints a step-by-step setup walkthrough with copy-paste'
@@ -70,9 +88,10 @@
       echo '         Prints the version number.'
       echo ''
       ai-brain ---y '     ai-brain --check'
-      echo '         Verifies that the required dependencies (jq, claude) and the'
-      echo '         optional one (tree) are available on PATH; reports OK/FAIL/'
-      echo '         WARN per item with a fix hint. Exit 0 if all required pass.'
+      echo '         Verifies that the required dependencies (jq, shasum, Claude'
+      echo '         Code as CLI or bundled with the desktop app) and the optional'
+      echo '         one (tree) are available; reports OK/FAIL/WARN per item with'
+      echo '         a fix hint. Exit 0 if all required pass.'
       echo ''
       ai-brain ---g '   Conventions:'
       echo '     §<name>/        AI-Brain root'
@@ -88,35 +107,106 @@
 #===============================================================================
 
    if [ "$*" == "--version" ] || [ "$*" == "--v" ]; then
-      echo "1.3.13
-      "; exit 0
+      echo "1.4.0"; exit 0
    fi
 
 #===============================================================================
-# advise hook: ai-brain --advise  (used by UserPromptSubmit hook)
+# advise hook: ai-brain --advise  (UserPromptSubmit hook, reads hook JSON)
 #===============================================================================
 
    if [ "$*" == "--advise" ]; then
-      # determine the AI-Brain root: nearest §-prefixed ancestor of cwd
-      ROOT=""
-      D="$PWD"
-      while [ "$D" != "/" ]; do
-         case "$(basename "$D")" in
-            §*) ROOT="$D"; break ;;
-         esac
-         D="$(dirname "$D")"
-      done
-      if [ -z "$ROOT" ]; then
-         echo 'INSTRUCTION: The current working directory is not inside an AI-Brain (no §-prefixed root found above cwd).'
-         echo 'Do not load any AI-Brain context.'
+      if [ ! -t 0 ]; then                # hook JSON on stdin: use its cwd
+         CWD="$(jq -r '.cwd // empty' 2>/dev/null)"
+         if [ -n "$CWD" ] && [ -d "$CWD" ]; then cd "$CWD" || exit 0; fi
+      fi
+      if [ -z "$(ai-brain ---root)" ]; then
+         exit 0                          # not inside an AI-Brain: stay silent
+      fi
+      read -r ID N <<< "$(ai-brain ---hash)"
+      echo "MASTERSPACE-CHECK: expected masterspace id=$ID (files=$N, cwd=$PWD)."
+      echo " Before answering, verify that BOTH exact markers <masterspace id=\"$ID\""
+      echo " and </masterspace id=\"$ID\"> are present in your context (memory or a"
+      echo " summary of earlier loading does not count). If not: tell the user"
+      echo " \"Lade Masterspace\", run \`ai-brain --load\` via Bash, read every listed"
+      echo " part file completely with the Read tool, then tell the user"
+      echo " \"Masterspace geladen (id $ID)\". If both markers are present, do nothing."
+      exit 0
+   fi
+
+#===============================================================================
+# session hook: ai-brain --session  (SessionStart hook, reads hook JSON)
+#===============================================================================
+
+   if [ "$*" == "--session" ]; then
+      if [ ! -t 0 ]; then                # hook JSON on stdin: use its cwd
+         CWD="$(jq -r '.cwd // empty' 2>/dev/null)"
+         if [ -n "$CWD" ] && [ -d "$CWD" ]; then cd "$CWD" || exit 0; fi
+      fi
+      if [ -z "$(ai-brain ---root)" ]; then
+         exit 0                          # not inside an AI-Brain: stay silent
+      fi
+      LIMIT="${AI_BRAIN_INLINE_LIMIT:-9000}"
+      CTX="$(ai-brain --context 2>/dev/null)"
+      if [ "${#CTX}" -le "$LIMIT" ]; then
+         echo "MASTERSPACE (loaded automatically by SessionStart hook):"
+         printf '%s\n' "$CTX"
+      else
+         echo "MASTERSPACE-MANDATORY: the masterspace for this project is too large"
+         echo " for direct injection (${#CTX} > $LIMIT characters). Before your first"
+         echo " answer, tell the user \"Lade Masterspace\", read every part file listed"
+         echo " below completely with the Read tool, then tell the user"
+         echo " \"Masterspace geladen\"."
+         ai-brain --load
+      fi
+      exit 0
+   fi
+
+#===============================================================================
+# masterspace id: ai-brain --id
+#===============================================================================
+
+   if [ "$*" == "--id" ]; then
+      if [ -z "$(ai-brain ---root)" ]; then
+         echo "no AI-Brain"
          exit 0
       fi
-      echo "INSTRUCTION: The current AI-Brain root is \"$ROOT\". Load context only when needed:"
-      echo " if you have NOT yet loaded AI-Brain context in this session, OR the current working directory (cwd)"
-      echo " recorded on the first line of /tmp/ai-brain-context.txt (format: AI-BRAIN-ROOT: <path>) differs"
-      echo " from the cwd, then run \`ai-brain --context > ~context\` via the Bash tool,"
-      echo " read ~context via the Read tool and afterwards delete ~context."
-      echo " Otherwise the already-loaded context is still current for this project — do nothing."
+      read -r ID N <<< "$(ai-brain ---hash)"
+      echo "id=$ID files=$N cwd=$PWD"
+      exit 0
+   fi
+
+#===============================================================================
+# part files: ai-brain --load  (context split into <= 40 KB part files)
+#===============================================================================
+
+   if [ "$*" == "--load" ]; then
+      if [ -z "$(ai-brain ---root)" ]; then
+         echo "no AI-Brain"
+         exit 0
+      fi
+      read -r ID N <<< "$(ai-brain ---hash)"
+      CACHE="$HOME/.claude/masterspace"
+      DIR="$CACHE/$ID"
+      if [ ! -f "$DIR/.complete" ]; then
+         rm -rf "$DIR"
+         mkdir -p "$DIR" || exit 1
+         ai-brain --context 2>/dev/null | awk -v dir="$DIR" -v max=40000 '
+            BEGIN { p = 1; n = 0 }
+            {
+               if (n > 0 && n + length($0) + 1 > max) { close(f); p++; n = 0 }
+               f = sprintf("%s/part-%d.md", dir, p)
+               print > f
+               n += length($0) + 1
+            }' || exit 1
+         touch "$DIR/.complete"
+      fi
+      # drop cached part files of outdated masterspaces (older than 7 days)
+      find "$CACHE" -mindepth 1 -maxdepth 1 -type d -mtime +7 -exec rm -rf {} + 2>/dev/null
+      P=$(ls "$DIR"/part-*.md | wc -l | tr -d ' ')
+      echo "MASTERSPACE-LOAD id=$ID files=$N parts=$P cwd=$PWD"
+      echo "Read each of the following part files completely (Read tool), in order:"
+      ls "$DIR"/part-*.md | sort -t- -k2 -n | sed 's/^/   /'
+      echo "The masterspace is loaded once </masterspace id=\"$ID\"> (end of the last part) has been read."
       exit 0
    fi
 
@@ -136,11 +226,23 @@
          ERR=1
       fi
 
-      # claude — the Claude Code CLI that consumes the hook
+      # shasum — hashing of the masterspace id (--id, --context, --advise)
+      if command -v shasum >/dev/null 2>&1; then
+         ai-brain ---g "  OK:   shasum (masterspace id)"
+      else
+         ai-brain ---r "  FAIL: shasum not found => install perl (shasum ships with perl)"
+         ERR=1
+      fi
+
+      # claude — Claude Code, either as CLI on PATH or bundled with the
+      # Claude desktop app (Code tab), which has no claude on PATH
+      APP=$(ls -d "$HOME/Library/Application Support/Claude/claude-code/"*/claude.app 2>/dev/null | tail -1)
       if command -v claude >/dev/null 2>&1; then
          ai-brain ---g "  OK:   claude (Claude Code CLI)"
+      elif [ -n "$APP" ]; then
+         ai-brain ---g "  OK:   claude (Claude Code bundled with the Claude desktop app)"
       else
-         ai-brain ---r "  FAIL: claude not found => https://docs.claude.com/en/docs/claude-code"
+         ai-brain ---r "  FAIL: Claude Code not found => https://docs.claude.com/en/docs/claude-code"
          ERR=1
       fi
 
@@ -329,7 +431,8 @@ BLOCK
       HOOK_CMD="ai-brain --advise"
       SETTINGS="$HOME/.claude/settings.json"
 
-      ai-brain ---c "hook command:  $HOOK_CMD"
+      SESSION_CMD="ai-brain --session"
+      ai-brain ---c "hook commands: $HOOK_CMD, $SESSION_CMD"
       ai-brain ---c "settings file: $SETTINGS"
 
       ai-brain ---y "=> ensuring $(dirname "$SETTINGS") exists"
@@ -341,23 +444,26 @@ BLOCK
          exit 1
       fi
 
-      ai-brain ---y "=> merging UserPromptSubmit hook into settings.json"
-      NEW=$(printf '%s' "$INPUT" | jq --arg cmd "$HOOK_CMD" '
+      ai-brain ---y "=> merging UserPromptSubmit + SessionStart hooks into settings.json"
+      NEW=$(printf '%s' "$INPUT" | jq --arg cmd "$HOOK_CMD" --arg scmd "$SESSION_CMD" '
+        def ensure($ev; $c):
+          .hooks[$ev] //= []
+          | if any(.hooks[$ev][];
+                   (.hooks // [])[]?.command
+                   | ((. == $c) or endswith("/" + $c)))
+            then .
+            else .hooks[$ev] += [{hooks: [{type: "command", command: $c}]}]
+            end;
         .hooks //= {}
-        | .hooks.UserPromptSubmit //= []
-        | if any(.hooks.UserPromptSubmit[];
-                 (.hooks // [])[]?.command
-                 | ((. == $cmd) or endswith("/" + $cmd)))
-          then .
-          else .hooks.UserPromptSubmit += [{hooks: [{type: "command", command: $cmd}]}]
-          end
+        | ensure("UserPromptSubmit"; $cmd)
+        | ensure("SessionStart"; $scmd)
       ') || exit 1
 
       TMP=$(mktemp)
       printf '%s\n' "$NEW" > "$TMP"
       mv "$TMP" "$SETTINGS" || exit 1
 
-      ai-brain ---g "OK — hook installed in $SETTINGS"
+      ai-brain ---g "OK — hooks installed in $SETTINGS"
       exit 0
    fi
 
@@ -381,18 +487,20 @@ BLOCK
          exit 1
       fi
 
-      ai-brain ---y "=> removing UserPromptSubmit entries that invoke ai-brain --advise or ai-brain --context"
+      ai-brain ---y "=> removing UserPromptSubmit/SessionStart entries that invoke ai-brain --advise, --session or --context"
       NEW=$(printf '%s' "$INPUT" | jq '
-        if .hooks.UserPromptSubmit then
-          .hooks.UserPromptSubmit |= map(
-            select((.hooks // [])
-                   | any(.command | (
-                       (. == "ai-brain --advise") or endswith("/ai-brain --advise") or
-                       (. == "ai-brain --context") or endswith("/ai-brain --context")
-                     ))
-                   | not)
-          )
-          | if .hooks.UserPromptSubmit == [] then del(.hooks.UserPromptSubmit) else . end
+        def ours: any(.command | (
+                    (. == "ai-brain --advise")  or endswith("/ai-brain --advise")  or
+                    (. == "ai-brain --session") or endswith("/ai-brain --session") or
+                    (. == "ai-brain --context") or endswith("/ai-brain --context")
+                  ));
+        def strip($ev):
+          if .hooks[$ev] then
+            .hooks[$ev] |= map(select((.hooks // []) | ours | not))
+            | if .hooks[$ev] == [] then del(.hooks[$ev]) else . end
+          else . end;
+        if .hooks then
+          strip("UserPromptSubmit") | strip("SessionStart")
           | if .hooks == {} then del(.hooks) else . end
         else . end
       ') || exit 1
@@ -401,7 +509,7 @@ BLOCK
       printf '%s\n' "$NEW" > "$TMP"
       mv "$TMP" "$SETTINGS" || exit 1
 
-      ai-brain ---g "OK — hook removed from $SETTINGS"
+      ai-brain ---g "OK — hooks removed from $SETTINGS"
       exit 0
    fi
 
@@ -547,18 +655,42 @@ EOF
       echo "$TIMESTAMP: ai-brain --context: "$(pwd) >>$LOG/ai-brain.log
       #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<$LOG<<<<<<<<<<<<<<<<<<<<<<
 
-      # emit the AI-Brain root (nearest §-prefixed ancestor) as the first line,
-      # so ai-brain --advise can detect a project-folder change and reload.
-      ROOT=""
-      RD="$PWD"
-      while [ "$RD" != "/" ]; do
-         case "$(basename "$RD")" in
-            §*) ROOT="$RD"; break ;;
-         esac
-         RD="$(dirname "$RD")"
+      # begin/end markers carry the masterspace id, so that Claude (hook
+      # --advise, skill /masterspace) can verify a complete load
+      read -r ID N <<< "$(ai-brain ---hash)"
+      echo "<masterspace id=\"$ID\" files=\"$N\" cwd=\"$PWD\">"
+      ai-brain ---dirs | while IFS= read -r S; do
+         ai-brain ---g "=> processing $S" >&2
+         find "$S" -name "*.md" | sort | while IFS= read -r f; do
+            echo "<skill src=\"$f\">"
+            cat "$f"
+            echo "</skill>"
+         done
       done
-      echo "AI-BRAIN-ROOT: $ROOT"
+      echo "</masterspace id=\"$ID\">"
+      exit 0
+   fi
 
+#===============================================================================
+# internal helpers (undocumented self-calls, operating on cwd):
+#   ai-brain ---root   # AI-Brain root (nearest §-prefixed ancestor) or empty
+#   ai-brain ---dirs   # masterspace @-folders from / down to cwd
+#   ai-brain ---files  # .md files of these masterspaces, in context order
+#   ai-brain ---hash   # "<id> <number of files>" (id: 8 hex over cwd+files)
+#===============================================================================
+
+   if [ "$*" == "---root" ]; then
+      D="$PWD"
+      while [ "$D" != "/" ]; do
+         case "$(basename "$D")" in
+            §*) echo "$D"; exit 0 ;;
+         esac
+         D="$(dirname "$D")"
+      done
+      exit 0
+   fi
+
+   if [ "$*" == "---dirs" ]; then
       D="$PWD"
       A=()
       while [ "$D" != "/" ]; do
@@ -566,16 +698,28 @@ EOF
          D="$(dirname "$D")"
       done
       for D in "${A[@]}"; do
-         S="$D/@"
-         if [ -d "$S" ]; then
-            ai-brain ---g "=> processing $S" >&2
-            find "$S" -name "*.md" | sort | while IFS= read -r f; do
-               echo "<skill src=\"$f\">"
-               cat "$f"
-               echo "</skill>"
-            done
-         fi
+         if [ -d "$D/@" ]; then echo "$D/@"; fi
       done
+      exit 0
+   fi
+
+   if [ "$*" == "---files" ]; then
+      ai-brain ---dirs | while IFS= read -r S; do
+         find "$S" -name "*.md" | sort
+      done
+      exit 0
+   fi
+
+   if [ "$*" == "---hash" ]; then
+      FILES="$(ai-brain ---files)"
+      N=0
+      if [ -n "$FILES" ]; then N=$(printf '%s\n' "$FILES" | wc -l | tr -d ' '); fi
+      ID=$( { echo "$PWD"
+              printf '%s\n' "$FILES" | while IFS= read -r f; do
+                 [ -n "$f" ] && { echo "$f"; cat "$f"; }
+              done
+            } | shasum -a 256 | cut -c1-8 )
+      echo "$ID $N"
       exit 0
    fi
 
