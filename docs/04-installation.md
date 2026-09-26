@@ -185,9 +185,18 @@ Jetzt erscheinen die drei `.md`-Dateien innerhalb der entsprechenden `@`-Ordner 
 ai-brain --setup
 ```
 
-Was im Hintergrund passiert: `ai-brain --setup` trägt den Hook **idempotent** in deine globale Claude-Code-Konfiguration `~/.claude/settings.json` ein (per `jq`-Merge — andere Top-Level-Keys wie `"theme"` oder bereits vorhandene Hooks bleiben unberührt). Ab sofort ruft Claude Code bei *jeder* Anfrage `ai-brain --context` auf; das Hook-Skript prüft selbstständig, ob das aktuelle Verzeichnis innerhalb eines AI-Brains (also unterhalb einer `§`-Wurzel mit `@`-Unterordnern auf dem Pfad) liegt — und liefert nur dann Kontext. Sonst läuft es still durch.
+Was im Hintergrund passiert: `ai-brain --setup` trägt **zwei Hooks** **idempotent** in deine globale Claude-Code-Konfiguration `~/.claude/settings.json` ein (per `jq`-Merge — andere Top-Level-Keys wie `"theme"` oder bereits vorhandene Hooks bleiben unberührt):
 
-Mehrfaches Ausführen von `--setup` schadet nicht: der Hook wird nicht doppelt eingetragen.
+| Hook | Befehl | Wirkung |
+|---|---|---|
+| `SessionStart` | `ai-brain --session` | lädt den Masterspace beim Start, bei Resume, nach `/clear` und nach jeder Komprimierung — direkt, wenn er in `$AI_BRAIN_INLINE_LIMIT` Zeichen passt (Default 9000), sonst als Pflichtanweisung, die Part-Dateien von `ai-brain --load` zu lesen |
+| `UserPromptSubmit` | `ai-brain --advise` | meldet bei jeder Anfrage die erwartete Masterspace-id; fehlen die passenden Marken im Kontext, lädt Claude nach |
+
+Der Kontext ist in `<masterspace id="…">` … `</masterspace id="…">` eingefasst. Die id ist ein Hash über Arbeitsverzeichnis, Dateipfade und Inhalte — so lässt sich prüfen, ob der Masterspace **vollständig** und **aktuell** geladen ist. Beide Hooks prüfen selbstständig, ob das aktuelle Verzeichnis innerhalb eines AI-Brains (also unterhalb einer `§`-Wurzel) liegt, und bleiben sonst still.
+
+Mehrfaches Ausführen von `--setup` schadet nicht: die Hooks werden nicht doppelt eingetragen.
+
+Jederzeit prüfen lässt sich der Zustand mit dem Skill **`/masterspace`** (Quelle im Projekt `PSM-Masterspace`, installiert nach `~/.claude/skills/masterspace/`). Er antwortet mit *„Masterspace geladen (id …)"* oder lädt mit *„Lade Masterspace"* nach.
 
 ## Schritt 8 — Die erste Probe-Anfrage
 
@@ -231,7 +240,7 @@ cd ~/§Privat/Lieblingsrezepte/Lieblingsspeisen
 ai-brain --context
 ```
 
-Du solltest die drei oben angelegten `.md`-Inhalte sehen, eingerahmt in `<skill src="…">`-Tags — und sonst nichts.
+Du solltest die drei oben angelegten `.md`-Inhalte sehen, jeweils eingerahmt in `<skill src="…">`-Tags und insgesamt umschlossen von `<masterspace id="…">` … `</masterspace id="…">` — und sonst nichts. Die erwartete id allein liefert `ai-brain --id`.
 
 ### In andere Ordner wechseln und Verhalten vergleichen
 
@@ -252,7 +261,7 @@ Wenn du den Hook später wieder loswerden möchtest:
 ai-brain --cleanup
 ```
 
-Das entfernt die `ai-brain --context`-Einträge aus deiner globalen `~/.claude/settings.json` — andere Hooks und Einstellungen (`theme` etc.) bleiben unberührt. Die Masterspaces und die Verzeichnisstruktur unter `§Privat/` bleiben ebenfalls erhalten.
+Das entfernt die `ai-brain`-Hooks (`--session`, `--advise` und ältere `--context`-Einträge) aus deiner globalen `~/.claude/settings.json` — andere Hooks und Einstellungen (`theme` etc.) bleiben unberührt. Die Masterspaces und die Verzeichnisstruktur unter `§Privat/` bleiben ebenfalls erhalten.
 
 ## Troubleshooting — typische Stolpersteine
 
@@ -262,7 +271,9 @@ Das entfernt die `ai-brain --context`-Einträge aus deiner globalen `~/.claude/s
 | `ai-brain: command not found` nach Schritt 1 | Install-Verzeichnis nicht auf PATH | `~/bin` zum PATH hinzufügen oder das Skript in ein PATH-Verzeichnis kopieren |
 | `ai-brain --check` meldet **FAIL** für `jq` | `jq` fehlt | `brew install jq` (Mac) oder `apt install jq` (Linux) |
 | `ai-brain --check` meldet **FAIL** für `ec` | Bluccino-Helper `ec` fehlt | siehe [bluccino/tool-ec](https://github.com/bluccino/tool-ec) |
-| Kontext-Antwort ignoriert Masterspace-Inhalte | Hook läuft nicht oder findet `@`-Ordner nicht | `ai-brain --context` aus dem aktuellen Verzeichnis ausführen und Output prüfen |
+| `ai-brain --check` meldet **FAIL** für Claude Code, obwohl die Claude-Desktop-App installiert ist | ältere `ai-brain`-Version (< 1.4.0) sucht nur `claude` im PATH | `ai-brain` aktualisieren — ab 1.4.0 wird die in der Desktop-App gebündelte Claude-Code-Version erkannt |
+| Kontext-Antwort ignoriert Masterspace-Inhalte | Hook läuft nicht oder findet `@`-Ordner nicht | `/masterspace` aufrufen (lädt bei Bedarf nach); `ai-brain --context` aus dem aktuellen Verzeichnis ausführen und Output prüfen |
+| Masterspace nur teilweise bekannt | großer Masterspace wurde nicht vollständig gelesen | `/masterspace` prüft die End-Marke und lädt die Part-Dateien vollständig nach |
 | *"hook timeout"* in Claude Code | Hook-Befehl zu langsam | bei Cloud-Drive-gemounteten Pfaden (z. B. Google Drive) kann der `find`-Lauf langsam sein — Masterspaces ggf. lokal halten |
 | Dateinamen mit Sonderzeichen wie `§` werden nicht gefunden | UTF-8-Encoding-Problem | sicherstellen, dass Terminal und Filesystem UTF-8 verwenden |
 

@@ -88,9 +88,10 @@
       echo '         Prints the version number.'
       echo ''
       ai-brain ---y '     ai-brain --check'
-      echo '         Verifies that the required dependencies (jq, claude) and the'
-      echo '         optional one (tree) are available on PATH; reports OK/FAIL/'
-      echo '         WARN per item with a fix hint. Exit 0 if all required pass.'
+      echo '         Verifies that the required dependencies (jq, shasum, Claude'
+      echo '         Code as CLI or bundled with the desktop app) and the optional'
+      echo '         one (tree) are available; reports OK/FAIL/WARN per item with'
+      echo '         a fix hint. Exit 0 if all required pass.'
       echo ''
       ai-brain ---g '   Conventions:'
       echo '     §<name>/        AI-Brain root'
@@ -225,11 +226,23 @@
          ERR=1
       fi
 
-      # claude — the Claude Code CLI that consumes the hook
+      # shasum — hashing of the masterspace id (--id, --context, --advise)
+      if command -v shasum >/dev/null 2>&1; then
+         ai-brain ---g "  OK:   shasum (masterspace id)"
+      else
+         ai-brain ---r "  FAIL: shasum not found => install perl (shasum ships with perl)"
+         ERR=1
+      fi
+
+      # claude — Claude Code, either as CLI on PATH or bundled with the
+      # Claude desktop app (Code tab), which has no claude on PATH
+      APP=$(ls -d "$HOME/Library/Application Support/Claude/claude-code/"*/claude.app 2>/dev/null | tail -1)
       if command -v claude >/dev/null 2>&1; then
          ai-brain ---g "  OK:   claude (Claude Code CLI)"
+      elif [ -n "$APP" ]; then
+         ai-brain ---g "  OK:   claude (Claude Code bundled with the Claude desktop app)"
       else
-         ai-brain ---r "  FAIL: claude not found => https://docs.claude.com/en/docs/claude-code"
+         ai-brain ---r "  FAIL: Claude Code not found => https://docs.claude.com/en/docs/claude-code"
          ERR=1
       fi
 
